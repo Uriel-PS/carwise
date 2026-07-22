@@ -22,12 +22,15 @@ const CAMPOS_OBRIGATORIOS = {
   pessoal: [
     ['nome', 'Nome completo'],
     ['cpf', 'CPF'],
+    ['data_nascimento', 'Data de nascimento'],
     ['email', 'E-mail'],
+    ['telefone', 'Telefone / WhatsApp'],
     ['senha', 'Senha'],
     ['cidade', 'Cidade'],
     ['estado', 'UF'],
   ],
   financeiro: [
+    ['renda_mensal', 'Média de renda mensal'],
     ['valor_disponivel', 'Valor disponível para o carro'],
     ['forma_pagamento', 'Forma de pagamento'],
   ],
@@ -47,7 +50,7 @@ export default function Cadastro() {
 
   const [pessoal, setPessoal] = useState({
     nome: '', cpf: '', email: '', senha: '', telefone: '',
-    cidade: '', estado: '', estado_civil: '', profissao: '', data_nascimento: '',
+    cidade: '', estado: '', estado_civil: '', profissao: '', empresa: '', data_nascimento: '',
   })
 
   const [financeiro, setFinanceiro] = useState({
@@ -138,6 +141,7 @@ export default function Cadastro() {
         estado: pessoal.estado,
         estado_civil: pessoal.estado_civil,
         profissao: pessoal.profissao,
+        empresa: pessoal.empresa,
         data_nascimento: pessoal.data_nascimento || null,
       }])
       .select()
@@ -312,11 +316,11 @@ function PassoDados({ pessoal, setPessoal, onNext }) {
       <Input label="Nome completo" required value={pessoal.nome} onChange={e => set('nome', e.target.value)} />
       <div className="grid grid-cols-2 gap-3">
         <Input label="CPF" required value={pessoal.cpf} onChange={e => set('cpf', e.target.value)} />
-        <Input label="Data de nascimento" type="date" value={pessoal.data_nascimento} onChange={e => set('data_nascimento', e.target.value)} />
+        <Input label="Data de nascimento" type="date" required value={pessoal.data_nascimento} onChange={e => set('data_nascimento', e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Input label="E-mail" type="email" required value={pessoal.email} onChange={e => set('email', e.target.value)} />
-        <Input label="Telefone / WhatsApp" value={pessoal.telefone} onChange={e => set('telefone', e.target.value)} />
+        <Input label="Telefone / WhatsApp" required value={pessoal.telefone} onChange={e => set('telefone', e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Select label="Estado civil" value={pessoal.estado_civil} onChange={e => set('estado_civil', e.target.value)}>
@@ -329,6 +333,7 @@ function PassoDados({ pessoal, setPessoal, onNext }) {
         </Select>
         <Input label="Profissão" value={pessoal.profissao} onChange={e => set('profissao', e.target.value)} />
       </div>
+      <Input label="Local de trabalho (opcional)" value={pessoal.empresa} onChange={e => set('empresa', e.target.value)} placeholder="Nome da empresa" />
       <div className="grid grid-cols-[1fr_80px] gap-3">
         <Input label="Cidade" required value={pessoal.cidade} onChange={e => set('cidade', e.target.value)} />
         <Input label="UF" required maxLength={2} value={pessoal.estado} onChange={e => set('estado', e.target.value)} />
@@ -347,7 +352,7 @@ function PassoFinanceiro({ financeiro, setFinanceiro, onNext, onBack }) {
     <div className="space-y-4">
       <h3 className="font-semibold text-blue-950 mb-1">Dados financeiros</h3>
       <div className="grid grid-cols-2 gap-3">
-        <Input label="Renda mensal" value={financeiro.renda_mensal} onChange={e => set('renda_mensal', e.target.value)} placeholder="6500" />
+        <Input label="Média de renda mensal" required value={financeiro.renda_mensal} onChange={e => set('renda_mensal', e.target.value)} placeholder="6500" />
         <Input label="Renda familiar" value={financeiro.renda_familiar} onChange={e => set('renda_familiar', e.target.value)} placeholder="9000" />
       </div>
       <div className="grid grid-cols-2 gap-3">

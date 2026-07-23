@@ -8,54 +8,74 @@ export default function PainelConsultor() {
   const router = useRouter()
   const [consultor, setConsultor] = useState(null)
   const [clientes, setClientes] = useState([])
+  const [veiculos, setVeiculos] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [busca, setBusca] = useState('')
+  const [aba, setAba] = useState('clientes')
+  const [filtroResponsavel, setFiltroResponsavel] = useState('todos')
 
-  useEffect(() => {
-    async function carregar() {
-      const { data: sessionData } = await supabase.auth.getSession()
+  async function carregarTudo() {
+    const { data: sessionData } = await supabase.auth.getSession()
 
-      if (!sessionData.session) {
-        router.push('/consultor/login')
-        return
-      }
-
-      const user = sessionData.session.user
-
-      const { data: consultorData, error: consultorError } = await supabase
-        .from('consultores')
-        .select('*')
-        .eq('auth_id', user.id)
-        .eq('ativo', true)
-        .maybeSingle()
-
-      if (consultorError || !consultorData) {
-        router.push('/consultor/login')
-        return
-      }
-
-      setConsultor(consultorData)
-
-      const { data: clientesData, error: clientesError } = await supabase
-        .from('clientes')
-        .select(`
-          id, nome, email, telefone, cidade, estado, created_at,
-          clientes_financeiro ( valor_disponivel, forma_pagamento ),
-          clientes_preferencias ( categoria )
-        `)
-        .order('created_at', { ascending: false })
-
-      if (clientesError) {
-        setErro('Erro ao carregar clientes: ' + clientesError.message)
-      } else {
-        setClientes(clientesData)
-      }
-
-      setCarregando(false)
+    if (!sessionData.session) {
+      router.push('/consultor/login')
+      return
     }
 
-    carregar()
+    const user = sessionData.session.user
+
+    const { data: consultorData, error: consultorError } = await supabase
+      .from('consultores')
+      .select('*')
+      .eq('auth_id', user.id)
+      .eq('ativo', true)
+      .maybeSingle()
+
+    if (consultorError || !consultorData) {
+      router.push('/consultor/login')
+      return
+    }
+
+    setConsultor(consultorData)
+
+    const { data: clientesData, error: clientesError } = await supabase
+      .from('clientes')
+      .select(`
+        id, nome, email, telefone, cidade, estado, created_at, consultor_id,
+        clientes_financeiro ( valor_disponivel, forma_pagamento ),
+        clientes_preferencias ( categoria ),
+        consultores ( nome )
+      `)
+      .order('created_at', { ascending: false })
+
+    if (clientesError) {
+      setErro('Erro ao carregar clientes: ' + clientesError.message)
+    } else {
+      setClientes(clientesData)
+    }
+
+    const { data: veiculosData, error: veiculosError } = await supabase
+      .from('veiculos')
+      .select(`
+        id, marca, modelo, versao, ano_fabricacao, ano_modelo, cor, cambio,
+        combustivel, km, preco, preco_negociacao, status, created_at,
+        concessionarias ( nome_fantasia, cidade, estado )
+      `)
+      .order('created_at', { ascending: false })
+
+    if (veiculosError) {
+      setErro((prev) => prev || ('Erro ao carregar veículos: ' + veiculosError.message))
+    } else {
+      setVeiculos(veiculosData)
+    }
+
+    setCarregando(false)
+  }
+
+  useEffect(() => {
+    carregarTudo()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router])
 
   async function handleLogout() {
@@ -63,10 +83,36 @@ export default function PainelConsultor() {
     router.push('/consultor/login')
   }
 
-  const clientesFiltrados = clientes.filter((c) =>
-    c.nome?.toLowerCase().includes(busca.toLowerCase()) ||
-    c.email?.toLowerCase().includes(busca.toLowerCase()) ||
-    c.cidade?.toLowerCase().includes(busca.toLowerCase())
+  async function assumirCliente(clienteId) {
+    const { error } = await supabase
+      .from('clientes')
+      .update({ consultor_id: consultor.id })
+      .eq('id', clienteId)
+
+    if (error) {
+      alert('Não foi possível assumir este cliente: ' + error.message)
+      return
+    }
+
+    carregarTudo()
+  }
+
+  const clientesFiltrados = clientes
+    .filter((c) =>
+      c.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+      c.email?.toLowerCase().includes(busca.toLowerCase()) ||
+      c.cidade?.toLowerCase().includes(busca.toLowerCase())
+    )
+    .filter((c) => {
+      if (filtroResponsavel === 'meus') return c.consultor_id === consultor?.id
+      if (filtroResponsavel === 'sem-consultor') return !c.consultor_id
+      return true
+    })
+
+  const veiculosFiltrados = veiculos.filter((v) =>
+    v.marca?.toLowerCase().includes(busca.toLowerCase()) ||
+    v.modelo?.toLowerCase().includes(busca.toLowerCase()) ||
+    v.concessionarias?.nome_fantasia?.toLowerCase().includes(busca.toLowerCase())
   )
 
   if (carregando) {
@@ -95,14 +141,37 @@ export default function PainelConsultor() {
       </header>
 
       <div className="max-w-6xl mx-auto px-6 py-10">
+
+        {/* Abas */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setAba('clientes')}
+            className={`text-sm font-semibold px-4 py-2 rounded-lg transition ${aba === 'clientes' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-blue-300'}`}
+          >
+            Clientes
+          </button>
+          <button
+            onClick={() => setAba('estoque')}
+            className={`text-sm font-semibold px-4 py-2 rounded-lg transition ${aba === 'estoque' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-blue-300'}`}
+          >
+            Estoque
+          </button>
+        </div>
+
         <div className="flex justify-between items-end mb-6 flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-blue-950 mb-1">Clientes cadastrados</h1>
-            <p className="text-gray-500 text-sm">{clientes.length} cliente{clientes.length !== 1 ? 's' : ''} no total</p>
+            <h1 className="text-2xl font-bold text-blue-950 mb-1">
+              {aba === 'clientes' ? 'Clientes cadastrados' : 'Estoque de veículos'}
+            </h1>
+            <p className="text-gray-500 text-sm">
+              {aba === 'clientes'
+                ? `${clientes.length} cliente${clientes.length !== 1 ? 's' : ''} no total`
+                : `${veiculos.length} veículo${veiculos.length !== 1 ? 's' : ''} de todas as concessionárias parceiras`}
+            </p>
           </div>
           <input
             type="text"
-            placeholder="Buscar por nome, e-mail ou cidade..."
+            placeholder={aba === 'clientes' ? 'Buscar por nome, e-mail ou cidade...' : 'Buscar por marca, modelo ou concessionária...'}
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm w-72 text-gray-900 placeholder-gray-400"
@@ -113,52 +182,140 @@ export default function PainelConsultor() {
           <p className="text-red-600 text-sm mb-5 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{erro}</p>
         )}
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wide">
-                <th className="px-6 py-3 font-semibold">Nome</th>
-                <th className="px-6 py-3 font-semibold">Contato</th>
-                <th className="px-6 py-3 font-semibold">Cidade</th>
-                <th className="px-6 py-3 font-semibold">Procura</th>
-                <th className="px-6 py-3 font-semibold">Orçamento</th>
-                <th className="px-6 py-3 font-semibold">Cadastro</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clientesFiltrados.map((c) => (
-                <tr
-                  key={c.id}
-                  onClick={() => router.push(`/consultor/cliente/${c.id}`)}
-                  className="border-t border-gray-50 hover:bg-blue-50/40 transition cursor-pointer"
-                >
-                  <td className="px-6 py-4 font-medium text-blue-950">{c.nome}</td>
-                  <td className="px-6 py-4 text-gray-600">
-                    <div>{c.email}</div>
-                    <div className="text-xs text-gray-400">{c.telefone || '—'}</div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">{c.cidade ? `${c.cidade}/${c.estado}` : '—'}</td>
-                  <td className="px-6 py-4 text-gray-600">{c.clientes_preferencias?.[0]?.categoria || '—'}</td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {c.clientes_financeiro?.[0]?.valor_disponivel
-                      ? Number(c.clientes_financeiro[0].valor_disponivel).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
-                      : '—'}
-                  </td>
-                  <td className="px-6 py-4 text-gray-400 text-xs">
-                    {new Date(c.created_at).toLocaleDateString('pt-BR')}
-                  </td>
+        {aba === 'clientes' && (
+          <>
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setFiltroResponsavel('todos')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${filtroResponsavel === 'todos' ? 'bg-blue-950 text-white' : 'bg-white text-gray-500 border border-gray-200'}`}
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => setFiltroResponsavel('meus')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${filtroResponsavel === 'meus' ? 'bg-blue-950 text-white' : 'bg-white text-gray-500 border border-gray-200'}`}
+              >
+                Meus clientes
+              </button>
+              <button
+                onClick={() => setFiltroResponsavel('sem-consultor')}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${filtroResponsavel === 'sem-consultor' ? 'bg-blue-950 text-white' : 'bg-white text-gray-500 border border-gray-200'}`}
+              >
+                Sem consultor
+              </button>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wide">
+                    <th className="px-6 py-3 font-semibold">Nome</th>
+                    <th className="px-6 py-3 font-semibold">Contato</th>
+                    <th className="px-6 py-3 font-semibold">Cidade</th>
+                    <th className="px-6 py-3 font-semibold">Procura</th>
+                    <th className="px-6 py-3 font-semibold">Orçamento</th>
+                    <th className="px-6 py-3 font-semibold">Responsável</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clientesFiltrados.map((c) => (
+                    <tr
+                      key={c.id}
+                      onClick={() => router.push(`/consultor/cliente/${c.id}`)}
+                      className="border-t border-gray-50 hover:bg-blue-50/40 transition cursor-pointer"
+                    >
+                      <td className="px-6 py-4 font-medium text-blue-950">{c.nome}</td>
+                      <td className="px-6 py-4 text-gray-600">
+                        <div>{c.email}</div>
+                        <div className="text-xs text-gray-400">{c.telefone || '—'}</div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">{c.cidade ? `${c.cidade}/${c.estado}` : '—'}</td>
+                      <td className="px-6 py-4 text-gray-600">{c.clientes_preferencias?.[0]?.categoria || '—'}</td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {c.clientes_financeiro?.[0]?.valor_disponivel
+                          ? Number(c.clientes_financeiro[0].valor_disponivel).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+                          : '—'}
+                      </td>
+                      <td className="px-6 py-4">
+                        {c.consultor_id ? (
+                          <span className="text-xs text-gray-600">{c.consultores?.nome || '—'}</span>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); assumirCliente(c.id) }}
+                            className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-full"
+                          >
+                            Assumir
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {clientesFiltrados.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-10 text-center text-gray-400">
+                        Nenhum cliente encontrado.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {aba === 'estoque' && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wide">
+                  <th className="px-6 py-3 font-semibold">Veículo</th>
+                  <th className="px-6 py-3 font-semibold">Concessionária</th>
+                  <th className="px-6 py-3 font-semibold">Detalhes</th>
+                  <th className="px-6 py-3 font-semibold">Preço anunciado</th>
+                  <th className="px-6 py-3 font-semibold">Preço mínimo <span className="normal-case font-normal text-gray-400">(privado)</span></th>
+                  <th className="px-6 py-3 font-semibold">Status</th>
                 </tr>
-              ))}
-              {clientesFiltrados.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-gray-400">
-                    Nenhum cliente encontrado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {veiculosFiltrados.map((v) => (
+                  <tr key={v.id} className="border-t border-gray-50 hover:bg-blue-50/40 transition">
+                    <td className="px-6 py-4 font-medium text-blue-950">
+                      {v.marca} {v.modelo} {v.versao}
+                      <div className="text-xs text-gray-400 font-normal">{v.ano_fabricacao}/{v.ano_modelo}</div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {v.concessionarias?.nome_fantasia || '—'}
+                      <div className="text-xs text-gray-400">{v.concessionarias?.cidade}/{v.concessionarias?.estado}</div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 text-xs">
+                      {v.cambio} · {v.combustivel}<br />
+                      {v.km ? `${v.km} km` : '—'} · {v.cor}
+                    </td>
+                    <td className="px-6 py-4 text-gray-800 font-medium">
+                      {v.preco ? Number(v.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : '—'}
+                    </td>
+                    <td className="px-6 py-4 text-amber-700 font-medium">
+                      {v.preco_negociacao ? Number(v.preco_negociacao).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-xs font-mono px-2.5 py-1 rounded-full ${v.status === 'ativo' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                        {v.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {veiculosFiltrados.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-10 text-center text-gray-400">
+                      Nenhum veículo encontrado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
       </div>
     </div>
   )

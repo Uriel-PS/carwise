@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
+import { calcularCompatibilidade } from '../../../lib/compatibilidade'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'],
@@ -27,6 +28,7 @@ export default function DetalheCliente() {
   const [uso, setUso] = useState(null)
   const [preferencias, setPreferencias] = useState(null)
   const [prioridades, setPrioridades] = useState(null)
+  const [ranking, setRanking] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
 
@@ -78,6 +80,34 @@ export default function DetalheCliente() {
       setUso(rUso.data)
       setPreferencias(rPref.data)
       setPrioridades(rPrio.data)
+
+      // Busca o estoque ativo de todas as concessionárias e calcula compatibilidade
+      const { data: veiculosData, error: veiculosError } = await supabase
+        .from('veiculos')
+        .select(`
+          id, marca, modelo, versao, ano_fabricacao, ano_modelo, cor, cambio,
+          combustivel, categoria, km, preco, preco_negociacao, status,
+          concessionarias ( nome_fantasia, cidade, estado )
+        `)
+        .eq('status', 'ativo')
+
+      if (!veiculosError && veiculosData) {
+        const clienteParaCalculo = {
+          financeiro: rFin.data || {},
+          preferencias: rPref.data || {},
+          prioridades: rPrio.data || {},
+        }
+
+        const rankingCalculado = veiculosData
+          .map((v) => ({
+            veiculo: v,
+            ...calcularCompatibilidade(clienteParaCalculo, v),
+          }))
+          .sort((a, b) => b.percentual - a.percentual)
+
+        setRanking(rankingCalculado)
+      }
+
       setCarregando(false)
     }
 
@@ -119,6 +149,75 @@ export default function DetalheCliente() {
           <h1 className="text-2xl font-bold text-blue-900 mb-1">{perfil?.nome}</h1>
           <p className="text-gray-500 text-sm">Cliente desde {new Date(perfil.created_at).toLocaleDateString('pt-BR')}</p>
         </div>
+
+        {ranking.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+            <h2 className="font-semibold text-blue-950 text-lg mb-1">Ranking de compatibilidade</h2>
+            <p className="text-xs text-gray-400 mb-6">Veículos do estoque comparados ao perfil deste cliente, do mais ao menos compatível.</p>
+
+            <div className="space-y-4">
+              {ranking.slice(0, 8).map((item, i) => (
+                <div key={item.veiculo.id} className="border border-gray-100 rounded-xl p-5">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-gray-400">#{i + 1}</span>
+                        <h3 className="font-semibold text-blue-950">
+                          {item.veiculo.marca} {item.veiculo.modelo} {item.veiculo.versao}
+                        </h3>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {item.veiculo.ano_fabricacao}/{item.veiculo.ano_modelo} · {item.veiculo.km ? `${item.veiculo.km} km` : '—'} · {item.veiculo.concessionarias?.nome_fantasia}
+                      </p>
+                    </div>
+                    <div className={`text-lg font-bold shrink-0 ${item.percentual >= 80 ? 'text-green-600' : item.percentual >= 60 ? 'text-amber-600' : 'text-gray-400'}`}>
+                      {item.percentual}%
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center mb-3 text-sm">
+                    <span className="text-gray-600 font-medium">
+                      {item.veiculo.preco ? Number(item.veiculo.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : '—'}
+                    </span>
+                    {item.veiculo.preco_negociacao && (
+                      <span className="text-amber-700 text-xs font-mono">
+                        mín. negociação: {Number(item.veiculo.preco_negociacao).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="w-full bg-gray-100 rounded-full h-1.5 mb-4 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${item.percentual >= 80 ? 'bg-green-500' : item.percentual >= 60 ? 'bg-amber-500' : 'bg-gray-300'}`}
+                      style={{ width: `${item.percentual}%` }}
+                    />
+                  </div>
+
+                  {item.motivos.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {item.motivos.map((m, idx) => (
+                        <span key={idx} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">✓ {m}</span>
+                      ))}
+                    </div>
+                  )}
+                  {item.atencao.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.atencao.map((a, idx) => (
+                        <span key={idx} className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">⚠ {a}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {ranking.length === 0 && !carregando && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5 text-center text-gray-400 text-sm">
+            Nenhum veículo ativo no estoque para comparar ainda.
+          </div>
+        )}
 
         {perfil && (
           <Secao titulo="Dados pessoais">

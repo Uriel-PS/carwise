@@ -107,6 +107,13 @@ export default function Painel() {
           </div>
         </div>
 
+        <a
+          href="/painel/editar"
+          className="inline-block bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 transition mt-4"
+        >
+          Editar meu perfil
+        </a>
+
         {erro && (
           <p className="text-red-600 text-sm mb-5 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{erro}</p>
         )}

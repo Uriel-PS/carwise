@@ -81,45 +81,54 @@ export default function Painel() {
   if (carregando) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
-        <p className="text-gray-500">Carregando...</p>
+        <p className="text-gray-400 text-sm">Carregando...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-blue-50 p-6 md:p-10">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <header className="bg-white/90 backdrop-blur border-b border-gray-100 sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-6 py-4 flex justify-between items-center">
+          <a href="/" className="flex items-center gap-2 font-[family-name:var(--font-display)] font-extrabold text-xl text-blue-950">
+            <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+            CarWise
+          </a>
+          <button
+            onClick={handleLogout}
+            className="text-sm font-semibold text-gray-500 hover:text-red-600 transition"
+          >
+            Sair
+          </button>
+        </div>
+      </header>
 
-        <div className="bg-white rounded-2xl shadow-lg p-8 md:p-10 mb-5">
-          <div className="flex justify-between items-start">
+      <div className="max-w-3xl mx-auto px-6 py-10">
+
+        <div className="bg-white rounded-2xl shadow-[0_20px_50px_-24px_rgba(10,34,71,0.15)] border border-gray-50 p-8 md:p-10 mb-5">
+          <div className="flex justify-between items-start flex-wrap gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-blue-900 mb-1">
+              <p className="text-xs font-mono text-blue-600 uppercase tracking-widest mb-2">Seu painel</p>
+              <h1 className="font-[family-name:var(--font-display)] font-bold text-3xl text-blue-950">
                 Olá, {perfil?.nome || usuario?.email}
               </h1>
-              <p className="text-gray-500 text-sm">Seu painel CarWise</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="bg-red-50 text-red-600 border border-red-200 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-red-100 transition"
+            <a
+              href="/painel/editar"
+              className="inline-flex items-center gap-2 bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 hover:-translate-y-0.5 transition shadow-sm"
             >
-              Sair
-            </button>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M18.5 2.5a2.1 2.1 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Editar meu perfil
+            </a>
           </div>
         </div>
-
-        <a
-          href="/painel/editar"
-          className="inline-block bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 transition mt-4"
-        >
-          Editar meu perfil
-        </a>
 
         {erro && (
           <p className="text-red-600 text-sm mb-5 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{erro}</p>
         )}
 
         {perfil && (
-          <Secao titulo="Dados pessoais">
+          <Secao titulo="Dados pessoais" icon={<IconPessoa />}>
             <InfoRow label="Nome completo" value={perfil.nome} />
             <InfoRow label="CPF" value={perfil.cpf} />
             <InfoRow label="Data de nascimento" value={formatarData(perfil.data_nascimento)} />
@@ -133,7 +142,7 @@ export default function Painel() {
         )}
 
         {financeiro && (
-          <Secao titulo="Dados financeiros">
+          <Secao titulo="Dados financeiros" icon={<IconFinanceiro />}>
             <InfoRow label="Média de renda mensal" value={formatarMoeda(financeiro.renda_mensal)} />
             <InfoRow label="Renda familiar" value={formatarMoeda(financeiro.renda_familiar)} />
             <InfoRow label="Valor disponível" value={formatarMoeda(financeiro.valor_disponivel)} />
@@ -148,7 +157,7 @@ export default function Painel() {
         )}
 
         {uso && (
-          <Secao titulo="Perfil de uso">
+          <Secao titulo="Perfil de uso" icon={<IconUso />}>
             <InfoRow label="Uso principal" value={uso.uso_principal} />
             <InfoRow label="Pessoas no carro" value={uso.pessoas_no_carro} />
             <InfoRow label="Percurso diário" value={uso.percurso_diario} />
@@ -157,7 +166,7 @@ export default function Painel() {
         )}
 
         {preferencias && (
-          <Secao titulo="Preferências do veículo">
+          <Secao titulo="Preferências do veículo" icon={<IconVeiculo />}>
             <InfoRow label="Categoria" value={preferencias.categoria} />
             <InfoRow label="Faixa de preço" value={formatarFaixa(preferencias.preco_min, preferencias.preco_max, formatarMoeda)} />
             <InfoRow label="Faixa de ano" value={formatarFaixa(preferencias.ano_min, preferencias.ano_max)} />
@@ -172,7 +181,7 @@ export default function Painel() {
         )}
 
         {prioridades && (
-          <Secao titulo="O que é mais importante para você">
+          <Secao titulo="O que é mais importante para você" icon={<IconPrioridade />}>
             <div className="space-y-3">
               {PRIORIDADES_LABELS.map(([campo, label]) => (
                 <div key={campo} className="flex items-center gap-3">
@@ -195,10 +204,15 @@ export default function Painel() {
   )
 }
 
-function Secao({ titulo, children }) {
+function Secao({ titulo, icon, children }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
-      <h2 className="font-semibold text-blue-950 text-lg mb-5">{titulo}</h2>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+          {icon}
+        </div>
+        <h2 className="font-[family-name:var(--font-display)] font-semibold text-blue-950 text-lg">{titulo}</h2>
+      </div>
       <div className="space-y-3">
         {children}
       </div>
@@ -209,7 +223,7 @@ function Secao({ titulo, children }) {
 function InfoRow({ label, value }) {
   return (
     <div className="flex justify-between text-sm border-b border-gray-50 pb-3 last:border-0 last:pb-0">
-      <span className="text-gray-500">{label}</span>
+      <span className="text-gray-400">{label}</span>
       <span className="text-gray-900 font-medium text-right">{value || '—'}</span>
     </div>
   )
@@ -234,4 +248,20 @@ function formatarFaixa(min, max, formatador) {
   if (min && max) return `${f(min)} — ${f(max)}`
   if (min) return `A partir de ${f(min)}`
   return `Até ${f(max)}`
+}
+
+function IconPessoa() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.5 0 4.5-2 4.5-4.5S14.5 3 12 3 7.5 5 7.5 7.5 9.5 12 12 12z" stroke="#2B5FE0" strokeWidth="1.6"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke="#2B5FE0" strokeWidth="1.6" strokeLinecap="round"/></svg>
+}
+function IconFinanceiro() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round"/></svg>
+}
+function IconUso() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 12h18M3 6h18M3 18h18" stroke="#2B5FE0" strokeWidth="1.6" strokeLinecap="round"/></svg>
+}
+function IconVeiculo() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 16l1.4-4.5A2 2 0 017.3 10h9.4a2 2 0 011.9 1.5L20 16" stroke="#2B5FE0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><rect x="3" y="16" width="18" height="4" rx="1.5" stroke="#2B5FE0" strokeWidth="1.6"/><circle cx="7.5" cy="20" r="1.1" stroke="#2B5FE0" strokeWidth="1.4"/><circle cx="16.5" cy="20" r="1.1" stroke="#2B5FE0" strokeWidth="1.4"/></svg>
+}
+function IconPrioridade() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.9 6.3 6.8.6-5.1 4.6 1.5 6.7L12 16.9l-6.1 3.3 1.5-6.7-5.1-4.6 6.8-.6L12 2z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round"/></svg>
 }

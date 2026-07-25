@@ -27,7 +27,6 @@ export default function LoginConsultor() {
       return
     }
 
-    // Confirma que esse usuário está cadastrado como consultor ativo
     const { data: consultorData, error: consultorError } = await supabase
       .from('consultores')
       .select('*')
@@ -47,50 +46,61 @@ export default function LoginConsultor() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-50 p-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white p-6">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-10 rounded-2xl shadow-lg w-full max-w-sm"
+        className="bg-white p-10 rounded-2xl shadow-[0_30px_60px_-24px_rgba(10,34,71,0.18)] border border-gray-100 w-full max-w-sm"
       >
-        <a href="/" className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-600 mb-6 font-medium">
-          ← Voltar
+        <a href="/acesso-interno" className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-600 transition mb-7 font-medium">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M11 7H3M6 3L2 7l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          Voltar
         </a>
 
-        <h1 className="text-2xl font-bold text-blue-900 mb-2">Acesso do consultor</h1>
-        <p className="text-gray-500 text-sm mb-6">Entre para gerenciar seus clientes.</p>
+        <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center mb-5">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4" stroke="#0A2247" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h11" stroke="#0A2247" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </div>
 
-        <div className="space-y-4">
-          <input
-            type="email"
-            placeholder="E-mail corporativo"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400"
-          />
-          <input
-            type="password"
-            placeholder="Senha"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400"
-          />
+        <h1 className="font-[family-name:var(--font-display)] font-bold text-[28px] text-blue-950 mb-1.5 leading-tight">Acesso do consultor</h1>
+        <p className="text-gray-400 text-sm mb-7">Entre para gerenciar seus clientes.</p>
+
+        <div className="space-y-3.5">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">E-mail corporativo</label>
+            <input
+              type="email"
+              placeholder="consultor@carwise.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Senha</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+              className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition"
+            />
+          </div>
         </div>
 
         {erro && (
-          <p className="text-red-600 text-sm mt-4">{erro}</p>
+          <p className="text-red-600 text-sm mt-4 bg-red-50 border border-red-100 rounded-lg px-4 py-2.5">{erro}</p>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-950 text-white rounded-lg py-3 mt-6 font-semibold hover:bg-blue-900 transition disabled:opacity-50"
+          className="w-full bg-blue-950 text-white rounded-lg py-3.5 mt-6 font-semibold text-sm hover:bg-blue-900 hover:-translate-y-0.5 transition disabled:opacity-50 disabled:translate-y-0 shadow-sm"
         >
           {loading ? 'Entrando...' : 'Entrar no painel'}
         </button>
 
-        <p className="text-center text-xs text-gray-400 mt-5">
+        <p className="text-center text-xs text-gray-400 mt-6">
           Acesso restrito a consultores credenciados CarWise.
         </p>
       </form>

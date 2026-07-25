@@ -116,7 +116,7 @@ export default function PainelConcessionaria() {
 
     setForm({
       marca: '', modelo: '', versao: '', ano_fabricacao: '', ano_modelo: '',
-      cor: '', cambio: 'Automático', combustivel: 'Flex', km: '', preco: '', preco_negociacao: '',
+      cor: '', cambio: 'Automático', combustivel: 'Flex', categoria: 'Hatch', km: '', preco: '', preco_negociacao: '',
     })
     setEditandoId(null)
     setMostrarForm(false)
@@ -132,38 +132,45 @@ export default function PainelConcessionaria() {
   if (carregando) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
-        <p className="text-gray-500">Carregando...</p>
+        <p className="text-gray-400 text-sm">Carregando...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-blue-50">
-      <header className="bg-white border-b border-gray-200">
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div>
-            <div className="font-bold text-blue-950">CarWise <span className="text-xs font-mono font-normal text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full ml-1">Concessionária</span></div>
-            <div className="text-xs text-gray-400">{concessionaria?.nome_fantasia}</div>
+          <div className="flex items-center gap-3">
+            <a href="/" className="flex items-center gap-2 font-[family-name:var(--font-display)] font-extrabold text-lg text-blue-950 hover:text-blue-700 transition">
+              <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+              CarWise
+            </a>
+            <span className="text-[11px] font-mono font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">Concessionária</span>
           </div>
-          <button
-            onClick={handleLogout}
-            className="bg-red-50 text-red-600 border border-red-200 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-red-100 transition"
-          >
-            Sair
-          </button>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-400 hidden sm:block">{concessionaria?.nome_fantasia}</span>
+            <button
+              onClick={handleLogout}
+              className="text-sm font-semibold text-gray-500 hover:text-red-600 transition"
+            >
+              Sair
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
+      <div className="max-w-5xl mx-auto px-6 py-8">
 
         <div className="flex justify-between items-end mb-6 flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-blue-950 mb-1">Seu estoque no CarWise</h1>
-            <p className="text-gray-500 text-sm">{veiculos.length} veículo{veiculos.length !== 1 ? 's' : ''} cadastrado{veiculos.length !== 1 ? 's' : ''}</p>
+            <p className="text-xs font-mono text-amber-600 uppercase tracking-widest mb-2">Painel da concessionária</p>
+            <h1 className="font-[family-name:var(--font-display)] font-bold text-2xl text-blue-950 mb-1">Seu estoque no CarWise</h1>
+            <p className="text-gray-400 text-sm">{veiculos.length} veículo{veiculos.length !== 1 ? 's' : ''} cadastrado{veiculos.length !== 1 ? 's' : ''}</p>
           </div>
           <button
             onClick={() => mostrarForm ? setMostrarForm(false) : abrirNovo()}
-            className="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 transition"
+            className="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 hover:-translate-y-0.5 transition shadow-sm"
           >
             {mostrarForm ? 'Cancelar' : '+ Cadastrar veículo'}
           </button>
@@ -173,7 +180,7 @@ export default function PainelConcessionaria() {
 
         {mostrarForm && (
           <form onSubmit={salvarVeiculo} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-6 space-y-4">
-            <h3 className="font-semibold text-blue-950">{editandoId ? 'Editar veículo' : 'Novo veículo'}</h3>
+            <h3 className="font-[family-name:var(--font-display)] font-semibold text-blue-950 text-lg">{editandoId ? 'Editar veículo' : 'Novo veículo'}</h3>
 
             <div className="grid grid-cols-3 gap-3">
               <Campo label="Marca" required value={form.marca} onChange={v => set('marca', v)} placeholder="Honda" />
@@ -189,31 +196,19 @@ export default function PainelConcessionaria() {
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Câmbio</label>
-                <select value={form.cambio} onChange={e => set('cambio', e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white">
-                  <option>Automático</option><option>Manual</option><option>CVT</option><option>Automatizado</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Combustível</label>
-                <select value={form.combustivel} onChange={e => set('combustivel', e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white">
-                  <option>Flex</option><option>Gasolina</option><option>Etanol</option><option>Diesel</option><option>Elétrico</option><option>Híbrido</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Categoria</label>
-                <select value={form.categoria} onChange={e => set('categoria', e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white">
-                  <option>Hatch</option><option>Sedan</option><option>SUV</option><option>Picape</option><option>Minivan</option><option>Esportivo</option><option>Luxo</option>
-                </select>
-              </div>
+              <Selecao label="Câmbio" value={form.cambio} onChange={v => set('cambio', v)} opcoes={['Automático', 'Manual', 'CVT', 'Automatizado']} />
+              <Selecao label="Combustível" value={form.combustivel} onChange={v => set('combustivel', v)} opcoes={['Flex', 'Gasolina', 'Etanol', 'Diesel', 'Elétrico', 'Híbrido']} />
+              <Selecao label="Categoria" value={form.categoria} onChange={v => set('categoria', v)} opcoes={['Hatch', 'Sedan', 'SUV', 'Picape', 'Minivan', 'Esportivo', 'Luxo']} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <Campo label="Preço anunciado" required value={form.preco} onChange={v => set('preco', v)} placeholder="118900" />
               <Campo label="Preço mínimo de negociação (privado)" value={form.preco_negociacao} onChange={v => set('preco_negociacao', v)} placeholder="112000" />
             </div>
-            <p className="text-xs text-gray-400 -mt-2">O preço de negociação é confidencial — só consultores e o admin conseguem ver esse valor.</p>
+            <p className="text-xs text-gray-400 -mt-2 flex items-center gap-1.5">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#9CA3AF" strokeWidth="1.6"/><path d="M12 8v5M12 16h.01" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round"/></svg>
+              O preço de negociação é confidencial — só consultores e o admin conseguem ver esse valor.
+            </p>
 
             {erroForm && <p className="text-red-600 text-xs">{erroForm}</p>}
 
@@ -225,18 +220,22 @@ export default function PainelConcessionaria() {
 
         <div className="grid md:grid-cols-2 gap-4">
           {veiculos.map((v) => (
-            <div key={v.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div key={v.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <h4 className="font-semibold text-blue-950">{v.marca} {v.modelo} {v.versao}</h4>
-                  <p className="text-xs text-gray-400">{v.ano_fabricacao}/{v.ano_modelo} · {v.km ? `${v.km} km` : '—'} · {v.cor}</p>
+                  <h4 className="font-[family-name:var(--font-display)] font-semibold text-blue-950 text-lg">{v.marca} {v.modelo} {v.versao}</h4>
+                  <p className="text-xs text-gray-400 mt-0.5">{v.ano_fabricacao}/{v.ano_modelo} · {v.km ? `${v.km} km` : '—'} · {v.cor}</p>
                 </div>
-                <span className={`text-xs font-mono px-2.5 py-1 rounded-full ${v.status === 'ativo' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                <span className={`text-xs font-mono px-2.5 py-1 rounded-full shrink-0 ${v.status === 'ativo' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                   {v.status}
                 </span>
               </div>
-              <div className="text-sm text-gray-600 mb-1">{v.cambio} · {v.combustivel}</div>
-              <div className="text-lg font-bold text-blue-950 mb-3">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                <span className="bg-gray-50 px-2 py-1 rounded-md">{v.categoria || 'Sem categoria'}</span>
+                <span className="bg-gray-50 px-2 py-1 rounded-md">{v.cambio}</span>
+                <span className="bg-gray-50 px-2 py-1 rounded-md">{v.combustivel}</span>
+              </div>
+              <div className="font-[family-name:var(--font-display)] text-xl font-bold text-blue-950 mb-4">
                 {v.preco ? Number(v.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : '—'}
               </div>
               <div className="flex gap-4">
@@ -250,7 +249,9 @@ export default function PainelConcessionaria() {
             </div>
           ))}
           {veiculos.length === 0 && !mostrarForm && (
-            <div className="col-span-2 text-center text-gray-400 py-10">Nenhum veículo cadastrado ainda.</div>
+            <div className="col-span-2 text-center text-gray-400 text-sm py-14 bg-white rounded-2xl border border-gray-100">
+              Nenhum veículo cadastrado ainda.
+            </div>
           )}
         </div>
       </div>
@@ -261,11 +262,25 @@ export default function PainelConcessionaria() {
 function Campo({ label, required, value, onChange, placeholder }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-700 mb-1.5">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
+      <label className="block text-xs font-semibold text-gray-600 mb-1.5">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
       <input
         value={value} onChange={e => onChange(e.target.value)} required={required} placeholder={placeholder}
-        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400"
+        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition"
       />
+    </div>
+  )
+}
+
+function Selecao({ label, value, onChange, opcoes }) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-gray-600 mb-1.5">{label}</label>
+      <select
+        value={value} onChange={e => onChange(e.target.value)}
+        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white focus:border-blue-400 focus:outline-none transition"
+      >
+        {opcoes.map((o) => <option key={o}>{o}</option>)}
+      </select>
     </div>
   )
 }

@@ -5,16 +5,10 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
 const PRIORIDADES_LABELS = [
-  ['economia', 'Economia'],
-  ['conforto', 'Conforto'],
-  ['tecnologia', 'Tecnologia'],
-  ['espaco', 'Espaço'],
-  ['potencia', 'Potência'],
-  ['seguranca', 'Segurança'],
-  ['baixa_manutencao', 'Baixa manutenção'],
-  ['revenda_facil', 'Revenda fácil'],
-  ['design', 'Design'],
-  ['status', 'Status'],
+  ['economia', 'Economia'], ['conforto', 'Conforto'], ['tecnologia', 'Tecnologia'],
+  ['espaco', 'Espaço'], ['potencia', 'Potência'], ['seguranca', 'Segurança'],
+  ['baixa_manutencao', 'Baixa manutenção'], ['revenda_facil', 'Revenda fácil'],
+  ['design', 'Design'], ['status', 'Status'],
 ]
 
 const CAMPOS_OBRIGATORIOS = {
@@ -29,8 +23,14 @@ const CAMPOS_OBRIGATORIOS = {
   preferencias: [['categoria', 'Categoria do veículo']],
 }
 
-// Substitui valores null/undefined vindos do banco pelos valores padrão
-// definidos em cada campo, evitando o erro "value prop should not be null".
+const PASSOS = [
+  { titulo: 'Dados', icon: <IconDados /> },
+  { titulo: 'Financeiro', icon: <IconFinanceiro /> },
+  { titulo: 'Uso', icon: <IconUso /> },
+  { titulo: 'Veículo', icon: <IconVeiculo /> },
+  { titulo: 'Prioridades', icon: <IconPrioridade /> },
+]
+
 function sanitizar(dados, padroes) {
   const resultado = { ...padroes }
   if (dados) {
@@ -172,29 +172,43 @@ export default function EditarPerfil() {
   if (carregando) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
-        <p className="text-gray-500">Carregando...</p>
+        <p className="text-gray-400 text-sm">Carregando...</p>
       </div>
     )
   }
 
-  const totalPassos = 5
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-50 p-6">
-      <div className="bg-white p-10 rounded-2xl shadow-lg w-full max-w-xl">
-        <a href="/painel" className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-600 mb-6 font-medium">
-          ← Voltar para o painel
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white p-6">
+      <div className="bg-white p-10 rounded-2xl shadow-[0_30px_60px_-24px_rgba(10,34,71,0.18)] border border-gray-100 w-full max-w-xl">
+        <a href="/painel" className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-600 transition mb-6 font-medium">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M11 7H3M6 3L2 7l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          Voltar para o painel
         </a>
 
-        <h1 className="text-2xl font-bold text-blue-900 mb-1">Editar seu perfil</h1>
-        <p className="text-gray-400 text-xs mb-6">Campos com <span className="text-red-500">*</span> são obrigatórios.</p>
+        <h1 className="font-[family-name:var(--font-display)] font-bold text-[28px] text-blue-950 mb-1.5 leading-tight">Editar seu perfil</h1>
+        <p className="text-gray-300 text-xs mb-6">Campos com <span className="text-red-400">*</span> são obrigatórios.</p>
 
-        <div className="flex items-center gap-1.5 mb-8">
-          {Array.from({ length: totalPassos }).map((_, i) => (
-            <button
-              type="button" key={i} onClick={() => irPara(i + 1)}
-              className={`h-1.5 flex-1 rounded-full transition ${i + 1 === passo ? 'bg-blue-600' : i + 1 < passo ? 'bg-blue-300' : 'bg-gray-200'}`}
-            />
+        <div className="flex items-center gap-1 mb-8">
+          {PASSOS.map((p, i) => (
+            <div key={p.titulo} className="flex-1 flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => irPara(i + 1)}
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition ${
+                  i + 1 === passo ? 'bg-blue-600 text-white shadow-[0_0_0_5px_rgba(43,95,224,0.12)]'
+                  : i + 1 < passo ? 'bg-blue-100 text-blue-600'
+                  : 'bg-gray-100 text-gray-300'
+                }`}
+              >
+                {p.icon}
+              </button>
+              <span className={`text-[10.5px] font-medium ${i + 1 === passo ? 'text-blue-950' : 'text-gray-300'}`}>{p.titulo}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5 mb-8 -mt-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className={`h-1 flex-1 rounded-full transition ${i + 1 <= passo ? 'bg-blue-600' : 'bg-gray-100'}`} />
           ))}
         </div>
 
@@ -213,21 +227,30 @@ export default function EditarPerfil() {
 }
 
 function Label({ children, required }) {
-  return <label className="block text-xs font-semibold text-gray-700 mb-1.5">{children}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
+  return <label className="block text-xs font-semibold text-gray-600 mb-1.5">{children}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
 }
 function Input({ label, required, ...props }) {
-  return <div><Label required={required}>{label}</Label><input {...props} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400" /></div>
+  return <div><Label required={required}>{label}</Label><input {...props} className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition" /></div>
 }
 function Select({ label, required, children, ...props }) {
-  return <div><Label required={required}>{label}</Label><select {...props} className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 bg-white">{children}</select></div>
+  return <div><Label required={required}>{label}</Label><select {...props} className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 bg-white focus:border-blue-400 focus:outline-none transition">{children}</select></div>
 }
 function NavBotoes({ onNext, onBack, isLast, loading }) {
   return (
     <div className="flex gap-3 mt-2">
-      {onBack && <button type="button" onClick={onBack} className="flex-1 border border-gray-300 text-gray-700 rounded-lg py-3 font-semibold text-sm hover:bg-gray-50">Voltar</button>}
+      {onBack && <button type="button" onClick={onBack} className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-3 font-semibold text-sm hover:bg-gray-50 transition">Voltar</button>}
       {isLast
-        ? <button type="submit" disabled={loading} className="flex-1 bg-blue-600 text-white rounded-lg py-3 font-semibold text-sm hover:bg-blue-700 disabled:opacity-50">{loading ? 'Salvando...' : 'Salvar alterações'}</button>
-        : <button type="button" onClick={onNext} className="flex-1 bg-blue-600 text-white rounded-lg py-3 font-semibold text-sm hover:bg-blue-700">Continuar</button>}
+        ? <button type="submit" disabled={loading} className="flex-1 bg-blue-600 text-white rounded-lg py-3 font-semibold text-sm hover:bg-blue-700 hover:-translate-y-0.5 transition disabled:opacity-50 disabled:translate-y-0 shadow-sm">{loading ? 'Salvando...' : 'Salvar alterações'}</button>
+        : <button type="button" onClick={onNext} className="flex-1 bg-blue-600 text-white rounded-lg py-3 font-semibold text-sm hover:bg-blue-700 hover:-translate-y-0.5 transition shadow-sm">Continuar</button>}
+    </div>
+  )
+}
+
+function TituloPasso({ icon, children }) {
+  return (
+    <div className="flex items-center gap-2.5 mb-1">
+      <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">{icon}</div>
+      <h3 className="font-[family-name:var(--font-display)] font-semibold text-blue-950 text-lg">{children}</h3>
     </div>
   )
 }
@@ -236,14 +259,14 @@ function PassoDados({ pessoal, setPessoal, onNext }) {
   function set(campo, valor) { setPessoal({ ...pessoal, [campo]: valor }) }
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-blue-950 mb-1">Dados pessoais</h3>
+      <TituloPasso icon={<IconDados />}>Dados pessoais</TituloPasso>
       <Input label="Nome completo" required value={pessoal.nome} onChange={e => set('nome', e.target.value)} />
       <div className="grid grid-cols-2 gap-3">
         <Input label="CPF" required value={pessoal.cpf} onChange={e => set('cpf', e.target.value)} />
         <Input label="Data de nascimento" type="date" required value={pessoal.data_nascimento} onChange={e => set('data_nascimento', e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Input label="E-mail" type="email" required value={pessoal.email} disabled className="opacity-60 cursor-not-allowed" />
+        <Input label="E-mail" type="email" required value={pessoal.email} disabled className="w-full border border-gray-100 rounded-lg px-4 py-3 text-sm text-gray-400 bg-gray-50 cursor-not-allowed" />
         <Input label="Telefone / WhatsApp" required value={pessoal.telefone} onChange={e => set('telefone', e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -267,7 +290,7 @@ function PassoFinanceiro({ financeiro, setFinanceiro, onNext, onBack }) {
   function set(campo, valor) { setFinanceiro({ ...financeiro, [campo]: valor }) }
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-blue-950 mb-1">Dados financeiros</h3>
+      <TituloPasso icon={<IconFinanceiro />}>Dados financeiros</TituloPasso>
       <div className="grid grid-cols-2 gap-3">
         <Input label="Média de renda mensal" required value={financeiro.renda_mensal} onChange={e => set('renda_mensal', e.target.value)} />
         <Input label="Renda familiar" value={financeiro.renda_familiar} onChange={e => set('renda_familiar', e.target.value)} />
@@ -286,11 +309,11 @@ function PassoFinanceiro({ financeiro, setFinanceiro, onNext, onBack }) {
         <option>Financiamento</option><option>À vista</option><option>Consórcio</option><option>Ainda não sei</option>
       </Select>
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input type="checkbox" checked={!!financeiro.tem_veiculo_troca} onChange={e => set('tem_veiculo_troca', e.target.checked)} />Tenho veículo para troca
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          <input type="checkbox" checked={!!financeiro.tem_veiculo_troca} onChange={e => set('tem_veiculo_troca', e.target.checked)} className="accent-blue-600" />Tenho veículo para troca
         </label>
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input type="checkbox" checked={!!financeiro.tem_restricao} onChange={e => set('tem_restricao', e.target.checked)} />Possuo restrição no nome
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          <input type="checkbox" checked={!!financeiro.tem_restricao} onChange={e => set('tem_restricao', e.target.checked)} className="accent-blue-600" />Possuo restrição no nome
         </label>
       </div>
       {financeiro.tem_veiculo_troca && (
@@ -306,7 +329,7 @@ function PassoUso({ uso, setUso, onNext, onBack }) {
   function set(campo, valor) { setUso({ ...uso, [campo]: valor }) }
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-blue-950 mb-1">Perfil de uso</h3>
+      <TituloPasso icon={<IconUso />}>Perfil de uso</TituloPasso>
       <Select label="Uso principal do veículo" required value={uso.uso_principal} onChange={e => set('uso_principal', e.target.value)}>
         {['Família', 'Trabalho', 'Aplicativo', 'Viagens', 'Cidade', 'Estrada', 'Lazer', 'Comercial'].map(v => <option key={v}>{v}</option>)}
       </Select>
@@ -330,7 +353,7 @@ function PassoPreferencias({ preferencias, setPreferencias, onNext, onBack }) {
   function set(campo, valor) { setPreferencias({ ...preferencias, [campo]: valor }) }
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-blue-950 mb-1">Preferências do veículo</h3>
+      <TituloPasso icon={<IconVeiculo />}>Preferências do veículo</TituloPasso>
       <Select label="Categoria" required value={preferencias.categoria} onChange={e => set('categoria', e.target.value)}>
         {['Hatch', 'Sedan', 'SUV', 'Picape', 'Minivan', 'Esportivo', 'Luxo'].map(v => <option key={v}>{v}</option>)}
       </Select>
@@ -368,7 +391,7 @@ function PassoPrioridades({ prioridades, setPrioridades, onBack, loading }) {
   function set(campo, valor) { setPrioridades({ ...prioridades, [campo]: Number(valor) }) }
   return (
     <div className="space-y-5">
-      <h3 className="font-semibold text-blue-950 mb-1">O que é mais importante pra você?</h3>
+      <TituloPasso icon={<IconPrioridade />}>O que é mais importante pra você?</TituloPasso>
       <div className="space-y-3.5">
         {PRIORIDADES_LABELS.map(([campo, label]) => (
           <div key={campo} className="grid grid-cols-[110px_1fr_24px] items-center gap-3">
@@ -382,3 +405,9 @@ function PassoPrioridades({ prioridades, setPrioridades, onBack, loading }) {
     </div>
   )
 }
+
+function IconDados() { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.5 0 4.5-2 4.5-4.5S14.5 3 12 3 7.5 5 7.5 7.5 9.5 12 12 12z" stroke="currentColor" strokeWidth="1.6"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg> }
+function IconFinanceiro() { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg> }
+function IconUso() { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg> }
+function IconVeiculo() { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 16l1.4-4.5A2 2 0 017.3 10h9.4a2 2 0 011.9 1.5L20 16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><rect x="3" y="16" width="18" height="4" rx="1.5" stroke="currentColor" strokeWidth="1.6"/></svg> }
+function IconPrioridade() { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.9 6.3 6.8.6-5.1 4.6 1.5 6.7L12 16.9l-6.1 3.3 1.5-6.7-5.1-4.6 6.8-.6L12 2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg> }

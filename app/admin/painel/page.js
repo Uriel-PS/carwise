@@ -14,7 +14,6 @@ export default function PainelAdmin() {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
 
-  // Formulário de novo consultor
   const [mostrarForm, setMostrarForm] = useState(false)
   const [novoNome, setNovoNome] = useState('')
   const [novoEmail, setNovoEmail] = useState('')
@@ -22,7 +21,6 @@ export default function PainelAdmin() {
   const [salvando, setSalvando] = useState(false)
   const [erroForm, setErroForm] = useState('')
 
-  // Formulário de nova concessionária
   const [mostrarFormConc, setMostrarFormConc] = useState(false)
   const [salvandoConc, setSalvandoConc] = useState(false)
   const [erroFormConc, setErroFormConc] = useState('')
@@ -170,29 +168,35 @@ export default function PainelAdmin() {
   if (carregando) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
-        <p className="text-gray-500">Carregando...</p>
+        <p className="text-gray-400 text-sm">Carregando...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-blue-50">
-      <header className="bg-white border-b border-gray-200">
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div>
-            <div className="font-bold text-blue-950">CarWise <span className="text-xs font-mono font-normal text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full ml-1">Admin</span></div>
-            <div className="text-xs text-gray-400">{admin?.nome}</div>
+          <div className="flex items-center gap-3">
+            <a href="/" className="flex items-center gap-2 font-[family-name:var(--font-display)] font-extrabold text-lg text-blue-950 hover:text-blue-700 transition">
+              <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+              CarWise
+            </a>
+            <span className="text-[11px] font-mono font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">Admin</span>
           </div>
-          <button
-            onClick={handleLogout}
-            className="bg-red-50 text-red-600 border border-red-200 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-red-100 transition"
-          >
-            Sair
-          </button>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-400 hidden sm:block">{admin?.nome}</span>
+            <button
+              onClick={handleLogout}
+              className="text-sm font-semibold text-gray-500 hover:text-red-600 transition"
+            >
+              Sair
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
+      <div className="max-w-5xl mx-auto px-6 py-8">
 
         {/* Métricas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
@@ -207,36 +211,23 @@ export default function PainelAdmin() {
         )}
 
         {/* Gestão de consultores */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="font-semibold text-blue-950 text-lg">Consultores</h2>
+        <Cartao titulo="Consultores" icon={<IconConsultor />}
+          acao={
             <button
               onClick={() => setMostrarForm(!mostrarForm)}
               className="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition"
             >
               {mostrarForm ? 'Cancelar' : '+ Novo consultor'}
             </button>
-          </div>
-
+          }
+        >
           {mostrarForm && (
             <form onSubmit={criarConsultor} className="bg-blue-50/50 rounded-xl p-6 mb-6 space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text" placeholder="Nome completo" required
-                  value={novoNome} onChange={(e) => setNovoNome(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400"
-                />
-                <input
-                  type="email" placeholder="E-mail" required
-                  value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400"
-                />
+                <Campo placeholder="Nome completo" required value={novoNome} onChange={setNovoNome} />
+                <Campo type="email" placeholder="E-mail" required value={novoEmail} onChange={setNovoEmail} />
               </div>
-              <input
-                type="password" placeholder="Senha temporária (mínimo 6 caracteres)" required minLength={6}
-                value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400"
-              />
+              <Campo type="password" placeholder="Senha temporária (mínimo 6 caracteres)" required minLength={6} value={novaSenha} onChange={setNovaSenha} />
               {erroForm && <p className="text-red-600 text-xs">{erroForm}</p>}
               <button
                 type="submit" disabled={salvando}
@@ -249,7 +240,7 @@ export default function PainelAdmin() {
 
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs text-gray-500 uppercase tracking-wide">
+              <tr className="text-left text-[11px] text-gray-400 uppercase tracking-wider">
                 <th className="py-2 font-semibold">Nome</th>
                 <th className="py-2 font-semibold">E-mail</th>
                 <th className="py-2 font-semibold">Status</th>
@@ -260,11 +251,9 @@ export default function PainelAdmin() {
               {consultores.map((c) => (
                 <tr key={c.id} className="border-t border-gray-50">
                   <td className="py-3 font-medium text-blue-950">{c.nome}</td>
-                  <td className="py-3 text-gray-600">{c.email}</td>
+                  <td className="py-3 text-gray-500">{c.email}</td>
                   <td className="py-3">
-                    <span className={`text-xs font-mono px-2.5 py-1 rounded-full ${c.ativo ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                      {c.ativo ? 'ativo' : 'inativo'}
-                    </span>
+                    <Badge ativo={c.ativo} textoAtivo="ativo" textoInativo="inativo" />
                   </td>
                   <td className="py-3 text-right">
                     <button
@@ -277,43 +266,42 @@ export default function PainelAdmin() {
                 </tr>
               ))}
               {consultores.length === 0 && (
-                <tr><td colSpan={4} className="py-6 text-center text-gray-400">Nenhum consultor cadastrado ainda.</td></tr>
+                <tr><td colSpan={4} className="py-8 text-center text-gray-400 text-sm">Nenhum consultor cadastrado ainda.</td></tr>
               )}
             </tbody>
           </table>
-        </div>
+        </Cartao>
 
         {/* Gestão de concessionárias */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="font-semibold text-blue-950 text-lg">Concessionárias parceiras</h2>
+        <Cartao titulo="Concessionárias parceiras" icon={<IconConcessionaria />}
+          acao={
             <button
               onClick={() => setMostrarFormConc(!mostrarFormConc)}
               className="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition"
             >
               {mostrarFormConc ? 'Cancelar' : '+ Nova concessionária'}
             </button>
-          </div>
-
+          }
+        >
           {mostrarFormConc && (
             <form onSubmit={criarConcessionaria} className="bg-blue-50/50 rounded-xl p-6 mb-6 space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <input type="text" placeholder="Razão social" required value={formConc.razao_social} onChange={(e) => setConc('razao_social', e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
-                <input type="text" placeholder="Nome fantasia" required value={formConc.nome_fantasia} onChange={(e) => setConc('nome_fantasia', e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
+                <Campo placeholder="Razão social" required value={formConc.razao_social} onChange={(v) => setConc('razao_social', v)} />
+                <Campo placeholder="Nome fantasia" required value={formConc.nome_fantasia} onChange={(v) => setConc('nome_fantasia', v)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <input type="text" placeholder="CNPJ" required value={formConc.cnpj} onChange={(e) => setConc('cnpj', e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
-                <input type="text" placeholder="Responsável" value={formConc.responsavel} onChange={(e) => setConc('responsavel', e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
+                <Campo placeholder="CNPJ" required value={formConc.cnpj} onChange={(v) => setConc('cnpj', v)} />
+                <Campo placeholder="Responsável" value={formConc.responsavel} onChange={(v) => setConc('responsavel', v)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <input type="email" placeholder="E-mail" required value={formConc.email} onChange={(e) => setConc('email', e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
-                <input type="text" placeholder="Telefone" value={formConc.telefone} onChange={(e) => setConc('telefone', e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
+                <Campo type="email" placeholder="E-mail" required value={formConc.email} onChange={(v) => setConc('email', v)} />
+                <Campo placeholder="Telefone" value={formConc.telefone} onChange={(v) => setConc('telefone', v)} />
               </div>
               <div className="grid grid-cols-[1fr_80px] gap-3">
-                <input type="text" placeholder="Cidade" value={formConc.cidade} onChange={(e) => setConc('cidade', e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
-                <input type="text" placeholder="UF" maxLength={2} value={formConc.estado} onChange={(e) => setConc('estado', e.target.value)} className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
+                <Campo placeholder="Cidade" value={formConc.cidade} onChange={(v) => setConc('cidade', v)} />
+                <Campo placeholder="UF" maxLength={2} value={formConc.estado} onChange={(v) => setConc('estado', v)} />
               </div>
-              <input type="password" placeholder="Senha temporária (mínimo 6 caracteres)" required minLength={6} value={formConc.senha} onChange={(e) => setConc('senha', e.target.value)} className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
+              <Campo type="password" placeholder="Senha temporária (mínimo 6 caracteres)" required minLength={6} value={formConc.senha} onChange={(v) => setConc('senha', v)} />
               {erroFormConc && <p className="text-red-600 text-xs">{erroFormConc}</p>}
               <button type="submit" disabled={salvandoConc} className="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
                 {salvandoConc ? 'Criando...' : 'Criar concessionária'}
@@ -323,7 +311,7 @@ export default function PainelAdmin() {
 
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs text-gray-500 uppercase tracking-wide">
+              <tr className="text-left text-[11px] text-gray-400 uppercase tracking-wider">
                 <th className="py-2 font-semibold">Nome fantasia</th>
                 <th className="py-2 font-semibold">E-mail</th>
                 <th className="py-2 font-semibold">Cidade</th>
@@ -335,12 +323,10 @@ export default function PainelAdmin() {
               {concessionarias.map((c) => (
                 <tr key={c.id} className="border-t border-gray-50">
                   <td className="py-3 font-medium text-blue-950">{c.nome_fantasia}</td>
-                  <td className="py-3 text-gray-600">{c.email}</td>
-                  <td className="py-3 text-gray-600">{c.cidade ? `${c.cidade}/${c.estado}` : '—'}</td>
+                  <td className="py-3 text-gray-500">{c.email}</td>
+                  <td className="py-3 text-gray-500">{c.cidade ? `${c.cidade}/${c.estado}` : '—'}</td>
                   <td className="py-3">
-                    <span className={`text-xs font-mono px-2.5 py-1 rounded-full ${c.ativo ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                      {c.ativo ? 'ativa' : 'inativa'}
-                    </span>
+                    <Badge ativo={c.ativo} textoAtivo="ativa" textoInativo="inativa" />
                   </td>
                   <td className="py-3 text-right">
                     <button onClick={() => alternarAtivoConcessionaria(c.id, c.ativo)} className="text-xs font-semibold text-blue-600 hover:text-blue-800">
@@ -350,18 +336,17 @@ export default function PainelAdmin() {
                 </tr>
               ))}
               {concessionarias.length === 0 && (
-                <tr><td colSpan={5} className="py-6 text-center text-gray-400">Nenhuma concessionária cadastrada ainda.</td></tr>
+                <tr><td colSpan={5} className="py-8 text-center text-gray-400 text-sm">Nenhuma concessionária cadastrada ainda.</td></tr>
               )}
             </tbody>
           </table>
-        </div>
+        </Cartao>
 
-        {/* Clientes recentes */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <h2 className="font-semibold text-blue-950 text-lg mb-6">Clientes e atribuição de consultor</h2>
+        {/* Clientes e atribuição */}
+        <Cartao titulo="Clientes e atribuição de consultor" icon={<IconCliente />}>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs text-gray-500 uppercase tracking-wide">
+              <tr className="text-left text-[11px] text-gray-400 uppercase tracking-wider">
                 <th className="py-2 font-semibold">Nome</th>
                 <th className="py-2 font-semibold">E-mail</th>
                 <th className="py-2 font-semibold">Cadastro</th>
@@ -372,13 +357,13 @@ export default function PainelAdmin() {
               {clientes.slice(0, 15).map((c) => (
                 <tr key={c.id} className="border-t border-gray-50">
                   <td className="py-3 font-medium text-blue-950">{c.nome}</td>
-                  <td className="py-3 text-gray-600">{c.email}</td>
+                  <td className="py-3 text-gray-500">{c.email}</td>
                   <td className="py-3 text-gray-400 text-xs">{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>
                   <td className="py-3">
                     <select
                       value={c.consultor_id || ''}
                       onChange={(e) => reatribuirConsultor(c.id, e.target.value)}
-                      className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 bg-white"
+                      className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 bg-white focus:border-blue-400 focus:outline-none"
                     >
                       <option value="">Sem consultor</option>
                       {consultores.filter(con => con.ativo).map((con) => (
@@ -390,12 +375,10 @@ export default function PainelAdmin() {
               ))}
             </tbody>
           </table>
-        </div>
+        </Cartao>
 
         {/* Mensagens de contato */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mt-6">
-          <h2 className="font-semibold text-blue-950 text-lg mb-6">Mensagens de contato</h2>
-
+        <Cartao titulo="Mensagens de contato" icon={<IconMensagem />}>
           <div className="space-y-3">
             {mensagens.map((m) => (
               <div key={m.id} className={`border rounded-xl p-5 ${m.lida ? 'border-gray-100' : 'border-amber-200 bg-amber-50/40'}`}>
@@ -426,12 +409,56 @@ export default function PainelAdmin() {
               </div>
             ))}
             {mensagens.length === 0 && (
-              <div className="text-center text-gray-400 text-sm py-6">Nenhuma mensagem recebida ainda.</div>
+              <div className="text-center text-gray-400 text-sm py-8">Nenhuma mensagem recebida ainda.</div>
             )}
           </div>
-        </div>
+        </Cartao>
 
       </div>
+    </div>
+  )
+}
+
+function Cartao({ titulo, icon, acao, children }) {
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-6">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+            {icon}
+          </div>
+          <h2 className="font-[family-name:var(--font-display)] font-semibold text-blue-950 text-lg">{titulo}</h2>
+        </div>
+        {acao}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function Campo({ onChange, ...props }) {
+  return (
+    <input
+      {...props}
+      onChange={(e) => onChange(e.target.value)}
+      className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition w-full"
+    />
+  )
+}
+
+function Badge({ ativo, textoAtivo, textoInativo }) {
+  return (
+    <span className={`text-xs font-mono px-2.5 py-1 rounded-full ${ativo ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+      {ativo ? textoAtivo : textoInativo}
+    </span>
+  )
+}
+
+function Metrica({ label, valor, destaque }) {
+  return (
+    <div className={`rounded-2xl shadow-sm border p-6 text-center ${destaque ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+      <div className={`font-[family-name:var(--font-display)] text-3xl font-bold mb-1 ${destaque ? 'text-amber-700' : 'text-blue-950'}`}>{valor}</div>
+      <div className="text-xs text-gray-400">{label}</div>
     </div>
   )
 }
@@ -447,11 +474,15 @@ function rotuloAssunto(assunto) {
   return mapa[assunto] || assunto
 }
 
-function Metrica({ label, valor, destaque }) {
-  return (
-    <div className={`rounded-2xl shadow-sm border p-6 text-center ${destaque ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
-      <div className={`text-3xl font-bold mb-1 ${destaque ? 'text-amber-700' : 'text-blue-950'}`}>{valor}</div>
-      <div className="text-xs text-gray-500">{label}</div>
-    </div>
-  )
+function IconConsultor() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4" stroke="#B07830" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h11" stroke="#B07830" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+}
+function IconConcessionaria() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6" stroke="#B07830" strokeWidth="1.6" strokeLinejoin="round"/></svg>
+}
+function IconCliente() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.5 0 4.5-2 4.5-4.5S14.5 3 12 3 7.5 5 7.5 7.5 9.5 12 12 12z" stroke="#B07830" strokeWidth="1.6"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke="#B07830" strokeWidth="1.6" strokeLinecap="round"/></svg>
+}
+function IconMensagem() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6l9 6 9-6M3 6v12h18V6" stroke="#B07830" strokeWidth="1.6" strokeLinejoin="round"/></svg>
 }

@@ -283,7 +283,7 @@ export default function Home() {
               <h5 className="text-xs uppercase text-gray-400 font-semibold tracking-wide mb-4">Empresa</h5>
               <a href="/contato?assunto=trabalhe" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Trabalhe conosco</a>
               <a href="/contato?assunto=outro" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Contato</a>
-              <a href="/login" className="block text-sm text-gray-400 hover:text-blue-700 mb-2.5">Acesso interno</a>
+              <a href="/acesso-interno" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Acesso interno</a>
             </div>
           </div>
           <div className="border-t border-gray-200 pt-6 text-xs text-gray-400 flex justify-between flex-wrap gap-2">

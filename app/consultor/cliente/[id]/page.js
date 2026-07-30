@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
 import { calcularCompatibilidade } from '../../../lib/compatibilidade'
+import StatusConsultoria from '../../../components/StatusConsultoria'
+import DocumentosClienteLeitura from '../../../components/DocumentosClienteLeitura'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'],
@@ -22,6 +24,8 @@ export default function DetalheCliente() {
   const router = useRouter()
   const params = useParams()
   const clienteId = params.id
+
+  const ETAPAS_ORDEM = ['cadastro', 'buscando', 'negociando', 'documentacao', 'entrega']
 
   const [perfil, setPerfil] = useState(null)
   const [financeiro, setFinanceiro] = useState(null)
@@ -81,7 +85,6 @@ export default function DetalheCliente() {
       setPreferencias(rPref.data)
       setPrioridades(rPrio.data)
 
-      // Busca o estoque ativo de todas as concessionárias e calcula compatibilidade
       const { data: veiculosData, error: veiculosError } = await supabase
         .from('veiculos')
         .select(`
@@ -93,7 +96,6 @@ export default function DetalheCliente() {
 
       if (!veiculosError && veiculosData) {
         const clienteParaCalculo = {
-          financeiro: rFin.data || {},
           preferencias: rPref.data || {},
           prioridades: rPrio.data || {},
         }
@@ -113,6 +115,17 @@ export default function DetalheCliente() {
 
     carregar()
   }, [router, clienteId])
+
+  async function mudarEtapa(novaEtapa) {
+    const { error } = await supabase
+      .from('clientes')
+      .update({ etapa_atual: novaEtapa })
+      .eq('id', clienteId)
+
+    if (!error) {
+      setPerfil({ ...perfil, etapa_atual: novaEtapa })
+    }
+  }
 
   if (carregando) {
     return (
@@ -148,6 +161,26 @@ export default function DetalheCliente() {
         <div className="bg-white rounded-2xl shadow-lg p-8 md:p-10 mb-5">
           <h1 className="text-2xl font-bold text-blue-900 mb-1">{perfil?.nome}</h1>
           <p className="text-gray-500 text-sm">Cliente desde {new Date(perfil.created_at).toLocaleDateString('pt-BR')}</p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+          <p className="text-xs font-mono text-blue-600 uppercase tracking-widest mb-5">Status da consultoria</p>
+          <StatusConsultoria etapaAtual={perfil?.etapa_atual} />
+          <div className="flex gap-2 mt-6 flex-wrap">
+            {ETAPAS_ORDEM.map((etapa) => (
+              <button
+                key={etapa}
+                onClick={() => mudarEtapa(etapa)}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${
+                  perfil?.etapa_atual === etapa
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                }`}
+              >
+                {etapa}
+              </button>
+            ))}
+          </div>
         </div>
 
         {ranking.length > 0 && (
@@ -219,6 +252,13 @@ export default function DetalheCliente() {
           </div>
         )}
 
+	{perfil && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+            <h2 className="font-semibold text-blue-950 text-lg mb-5">Documentos do cliente</h2>
+            <DocumentosClienteLeitura clienteId={perfil.id} />
+          </div>
+        )}
+
         {perfil && (
           <Secao titulo="Dados pessoais">
             <InfoRow label="Nome completo" value={perfil.nome} />
@@ -237,7 +277,6 @@ export default function DetalheCliente() {
           <Secao titulo="Dados financeiros">
             <InfoRow label="Média de renda mensal" value={formatarMoeda(financeiro.renda_mensal)} />
             <InfoRow label="Renda familiar" value={formatarMoeda(financeiro.renda_familiar)} />
-            <InfoRow label="Valor disponível" value={formatarMoeda(financeiro.valor_disponivel)} />
             <InfoRow label="Entrada" value={formatarMoeda(financeiro.entrada)} />
             <InfoRow label="Parcela máxima" value={formatarMoeda(financeiro.parcela_maxima)} />
             <InfoRow label="Prazo máximo" value={financeiro.prazo_meses ? `${financeiro.prazo_meses} meses` : null} />
@@ -245,6 +284,7 @@ export default function DetalheCliente() {
             <InfoRow label="Veículo para troca" value={financeiro.tem_veiculo_troca ? `Sim — ${formatarMoeda(financeiro.valor_veiculo_troca) || 'valor não informado'}` : 'Não'} />
             <InfoRow label="Restrição no nome" value={financeiro.tem_restricao ? 'Sim' : 'Não'} />
             <InfoRow label="Banco de preferência" value={financeiro.banco_preferencia} />
+	    <InfoRow label="Autoriza análise de financiamento" value={financeiro.autoriza_analise_financiamento ? '✓ Sim, autorizado' : 'Não autorizado'} />
           </Secao>
         )}
 
@@ -263,8 +303,6 @@ export default function DetalheCliente() {
             <InfoRow label="Faixa de preço" value={formatarFaixa(preferencias.preco_min, preferencias.preco_max, formatarMoeda)} />
             <InfoRow label="Faixa de ano" value={formatarFaixa(preferencias.ano_min, preferencias.ano_max)} />
             <InfoRow label="Quilometragem máxima" value={preferencias.km_maxima ? `${preferencias.km_maxima} km` : null} />
-            <InfoRow label="Potência mínima" value={preferencias.potencia_min} />
-            <InfoRow label="Combustível" value={preferencias.combustivel} />
             <InfoRow label="Transmissão" value={preferencias.cambio} />
             <InfoRow label="Cor desejada" value={preferencias.cor} />
             <InfoRow label="Marcas preferidas" value={preferencias.marcas_preferidas} />

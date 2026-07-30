@@ -40,14 +40,14 @@ export default function PainelConsultor() {
     setConsultor(consultorData)
 
     const { data: clientesData, error: clientesError } = await supabase
-      .from('clientes')
-      .select(`
-        id, nome, email, telefone, cidade, estado, created_at, consultor_id,
-        clientes_financeiro ( valor_disponivel, forma_pagamento ),
-        clientes_preferencias ( categoria ),
-        consultores ( nome )
-      `)
-      .order('created_at', { ascending: false })
+  .from('clientes')
+  .select(`
+    id, nome, email, telefone, cidade, estado, created_at, consultor_id,
+    clientes_financeiro ( forma_pagamento ),
+    clientes_preferencias ( categoria, preco_max ),
+    consultores ( nome )
+  `)
+  .order('created_at', { ascending: false })
 
     if (clientesError) {
       setErro('Erro ao carregar clientes: ' + clientesError.message)
@@ -225,11 +225,11 @@ export default function PainelConsultor() {
                       </td>
                       <td className="px-6 py-4 text-gray-500">{c.cidade ? `${c.cidade}/${c.estado}` : '—'}</td>
                       <td className="px-6 py-4 text-gray-500">{c.clientes_preferencias?.[0]?.categoria || '—'}</td>
-                      <td className="px-6 py-4 text-gray-500">
-                        {c.clientes_financeiro?.[0]?.valor_disponivel
-                          ? Number(c.clientes_financeiro[0].valor_disponivel).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
-                          : '—'}
-                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+  {c.clientes_preferencias?.[0]?.preco_max
+    ? Number(c.clientes_preferencias[0].preco_max).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+    : '—'}
+</td>
                       <td className="px-6 py-4">
                         {c.consultor_id ? (
                           <span className="text-xs text-gray-500">{c.consultores?.nome || '—'}</span>

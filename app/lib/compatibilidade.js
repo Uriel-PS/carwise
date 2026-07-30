@@ -3,16 +3,11 @@
 //
 // As prioridades do cliente (sliders de 1-10 definidos no cadastro) ajustam o
 // PESO de critérios que já temos dado real — não inventam dado que não existe.
-// Ex: quem prioriza muito "economia" tem o peso do orçamento aumentado, já que
-// estourar o teto de preço pesa mais para esse perfil.
 
 export function calcularCompatibilidade(cliente, veiculo) {
   const preferencias = cliente.preferencias || {}
-  const financeiro = cliente.financeiro || {}
   const prioridades = cliente.prioridades || {}
 
-  // Fator de ajuste: sliders vão de 1 a 10, centro neutro é 5.
-  // Convertemos para um multiplicador entre 0.8 e 1.2 (variação de até 20%).
   function fatorPrioridade(valor) {
     const v = Number(valor)
     if (!v || isNaN(v)) return 1
@@ -29,7 +24,7 @@ export function calcularCompatibilidade(cliente, veiculo) {
   pontosMaximos += peso_orcamento
 
   const precoVeiculo = Number(veiculo.preco)
-  const orcamentoMax = Number(preferencias.preco_max) || Number(financeiro.valor_disponivel)
+  const orcamentoMax = Number(preferencias.preco_max)
   const orcamentoMin = Number(preferencias.preco_min) || 0
 
   if (precoVeiculo && orcamentoMax) {
@@ -68,8 +63,8 @@ export function calcularCompatibilidade(cliente, veiculo) {
     pontos += peso_categoria * 0.5
   }
 
-  // ===== ANO (peso 13) =====
-  const peso_ano = 13
+  // ===== ANO (peso 15) =====
+  const peso_ano = 15
   pontosMaximos += peso_ano
 
   const anoVeiculo = veiculo.ano_modelo || veiculo.ano_fabricacao
@@ -89,8 +84,8 @@ export function calcularCompatibilidade(cliente, veiculo) {
     pontos += peso_ano * 0.5
   }
 
-  // ===== QUILOMETRAGEM (peso base 13, ajustado por "baixa manutenção") =====
-  const peso_km = 13 * fatorPrioridade(prioridades.baixa_manutencao)
+  // ===== QUILOMETRAGEM (peso base 15, ajustado por "baixa manutenção") =====
+  const peso_km = 15 * fatorPrioridade(prioridades.baixa_manutencao)
   pontosMaximos += peso_km
 
   if (veiculo.km && preferencias.km_maxima) {
@@ -110,25 +105,8 @@ export function calcularCompatibilidade(cliente, veiculo) {
     pontos += peso_km * 0.5
   }
 
-  // ===== COMBUSTÍVEL (peso 8) =====
-  const peso_combustivel = 8
-  pontosMaximos += peso_combustivel
-
-  if (preferencias.combustivel && veiculo.combustivel) {
-    if (preferencias.combustivel === veiculo.combustivel) {
-      pontos += peso_combustivel
-      motivos.push(`Combustível ${veiculo.combustivel} conforme preferido`)
-    } else if (preferencias.combustivel === 'Flex' || veiculo.combustivel === 'Flex') {
-      pontos += peso_combustivel * 0.7
-    } else {
-      atencao.push(`Combustível ${veiculo.combustivel}, diferente do preferido (${preferencias.combustivel})`)
-    }
-  } else {
-    pontos += peso_combustivel * 0.5
-  }
-
-  // ===== CÂMBIO (peso base 8, ajustado por "conforto") =====
-  const peso_cambio = 8 * fatorPrioridade(prioridades.conforto)
+  // ===== CÂMBIO (peso base 16, ajustado por "conforto") =====
+  const peso_cambio = 16 * fatorPrioridade(prioridades.conforto)
   pontosMaximos += peso_cambio
 
   if (preferencias.cambio && veiculo.cambio) {
@@ -160,7 +138,7 @@ export function calcularCompatibilidade(cliente, veiculo) {
       pontos += peso_marca * 0.4
     }
   } else {
-    pontos += peso_marca * 0.7 // sem preferência declarada, nem penaliza nem premia muito
+    pontos += peso_marca * 0.7
   }
 
   // ===== COR (peso 6) =====
@@ -171,12 +149,12 @@ export function calcularCompatibilidade(cliente, veiculo) {
   const corVeiculo = (veiculo.cor || '').toLowerCase().trim()
 
   if (!corDesejada || corDesejada.includes('sem prefer')) {
-    pontos += peso_cor * 0.8 // cliente não tem preferência de cor
+    pontos += peso_cor * 0.8
   } else if (corVeiculo && corDesejada === corVeiculo) {
     pontos += peso_cor
     motivos.push(`Cor ${veiculo.cor} conforme desejado`)
   } else if (corVeiculo) {
-    pontos += peso_cor * 0.5 // cor diferente não é motivo forte de descarte
+    pontos += peso_cor * 0.5
   } else {
     pontos += peso_cor * 0.6
   }
@@ -190,7 +168,6 @@ export function calcularCompatibilidade(cliente, veiculo) {
   }
 }
 
-// Converte um texto tipo "Honda, Toyota" em uma lista normalizada ['honda', 'toyota']
 function parseListaMarcas(texto) {
   if (!texto) return []
   return texto

@@ -355,8 +355,13 @@ export default function PainelAdmin() {
             </thead>
             <tbody>
               {clientes.slice(0, 15).map((c) => (
-                <tr key={c.id} className="border-t border-gray-50">
-                  <td className="py-3 font-medium text-blue-950">{c.nome}</td>
+                <tr key={c.id} className="border-t border-gray-50 hover:bg-blue-50/30 transition">
+                  <td
+                    className="py-3 font-medium text-blue-950 cursor-pointer hover:underline"
+                    onClick={() => router.push(`/admin/cliente/${c.id}`)}
+                  >
+                    {c.nome}
+                  </td>
                   <td className="py-3 text-gray-500">{c.email}</td>
                   <td className="py-3 text-gray-400 text-xs">{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>
                   <td className="py-3">

@@ -15,13 +15,14 @@ const CAMPOS_OBRIGATORIOS = {
   pessoal: [
     ['nome', 'Nome completo'], ['cpf', 'CPF'], ['data_nascimento', 'Data de nascimento'],
     ['email', 'E-mail'], ['telefone', 'Telefone / WhatsApp'], ['senha', 'Senha'],
+    ['profissao', 'Profissão'], ['empresa', 'Local de trabalho'],
     ['cidade', 'Cidade'], ['estado', 'UF'],
   ],
   financeiro: [
-    ['renda_mensal', 'Média de renda mensal'], ['valor_disponivel', 'Valor disponível para o carro'], ['forma_pagamento', 'Forma de pagamento'],
+    ['renda_mensal', 'Média de renda mensal'], ['forma_pagamento', 'Forma de pagamento'],
   ],
   uso: [['uso_principal', 'Uso principal do veículo']],
-  preferencias: [['categoria', 'Categoria do veículo']],
+  preferencias: [['categoria', 'Categoria do veículo'], ['preco_max', 'Preço máximo']],
 }
 
 const PASSOS = [
@@ -31,6 +32,40 @@ const PASSOS = [
   { titulo: 'Veículo', icon: <IconVeiculo /> },
   { titulo: 'Prioridades', icon: <IconPrioridade /> },
 ]
+
+function limparVazios(obj) {
+  const limpo = {}
+  for (const campo of Object.keys(obj)) {
+    limpo[campo] = obj[campo] === '' ? null : obj[campo]
+  }
+  return limpo
+}
+
+function traduzirErro(mensagem) {
+  if (!mensagem) return 'Ocorreu um erro inesperado. Tente novamente.'
+  if (mensagem.includes('clientes_cpf_key')) {
+    return 'Este CPF já está cadastrado. Se você já tem conta, tente fazer login em vez de se cadastrar novamente.'
+  }
+  if (mensagem.includes('clientes_email_key') || mensagem.includes('already registered') || mensagem.includes('already been registered')) {
+    return 'Este e-mail já está cadastrado. Se você já tem conta, tente fazer login em vez de se cadastrar novamente.'
+  }
+  if (mensagem.includes('invalid input syntax for type numeric')) {
+    return 'Algum campo numérico foi preenchido de forma inválida. Use apenas números, sem R$, pontos ou vírgulas.'
+  }
+  if (mensagem.includes('invalid input syntax for type date')) {
+    return 'A data informada é inválida. Confira o campo de data de nascimento.'
+  }
+  if (mensagem.includes('Password should be at least')) {
+    return 'A senha precisa ter pelo menos 6 caracteres.'
+  }
+  if (mensagem.includes('Unable to validate email address') || mensagem.includes('invalid format')) {
+    return 'O e-mail informado não é válido. Confira e tente novamente.'
+  }
+  if (mensagem.includes('network') || mensagem.includes('fetch')) {
+    return 'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.'
+  }
+  return mensagem
+}
 
 export default function Cadastro() {
   const router = useRouter()
@@ -43,16 +78,17 @@ export default function Cadastro() {
     cidade: '', estado: '', estado_civil: '', profissao: '', empresa: '', data_nascimento: '',
   })
   const [financeiro, setFinanceiro] = useState({
-    renda_mensal: '', renda_familiar: '', valor_disponivel: '', entrada: '',
+    renda_mensal: '', renda_familiar: '', entrada: '',
     parcela_maxima: '', prazo_meses: '', forma_pagamento: 'Financiamento',
     tem_veiculo_troca: false, valor_veiculo_troca: '', tem_restricao: false, banco_preferencia: '',
-  })
+  autoriza_analise_financiamento: false,
+})
   const [uso, setUso] = useState({
     uso_principal: 'Família', pessoas_no_carro: '1', percurso_diario: 'Até 20 km', frequencia_viagens: 'Nunca',
   })
   const [preferencias, setPreferencias] = useState({
     categoria: 'Hatch', preco_min: '', preco_max: '', ano_min: '', ano_max: '', km_maxima: '',
-    potencia_min: '', combustivel: 'Flex', cambio: 'Automático', cor: '', marcas_preferidas: '', marcas_recusadas: '',
+    cambio: 'Automático', cor: '', marcas_preferidas: '', marcas_recusadas: '',
   })
   const [prioridades, setPrioridades] = useState({
     economia: 5, conforto: 5, tecnologia: 5, espaco: 5, potencia: 5,
@@ -98,7 +134,7 @@ export default function Cadastro() {
     })
 
     if (authError) {
-      setErro(authError.message)
+      setErro(traduzirErro(authError.message))
       setLoading(false)
       return
     }
@@ -118,7 +154,7 @@ export default function Cadastro() {
       .single()
 
     if (clienteError) {
-      setErro('Erro ao salvar perfil: ' + clienteError.message)
+      setErro(traduzirErro(clienteError.message))
       setLoading(false)
       return
     }
@@ -126,17 +162,17 @@ export default function Cadastro() {
     const clienteId = clienteData.id
 
     const [rFin, rUso, rPref, rPrio] = await Promise.all([
-      supabase.from('clientes_financeiro').insert([{ cliente_id: clienteId, ...financeiro }]),
-      supabase.from('clientes_uso').insert([{ cliente_id: clienteId, ...uso }]),
-      supabase.from('clientes_preferencias').insert([{ cliente_id: clienteId, ...preferencias }]),
-      supabase.from('clientes_prioridades').insert([{ cliente_id: clienteId, ...prioridades }]),
+      supabase.from('clientes_financeiro').insert([{ cliente_id: clienteId, ...limparVazios(financeiro) }]),
+      supabase.from('clientes_uso').insert([{ cliente_id: clienteId, ...limparVazios(uso) }]),
+      supabase.from('clientes_preferencias').insert([{ cliente_id: clienteId, ...limparVazios(preferencias) }]),
+      supabase.from('clientes_prioridades').insert([{ cliente_id: clienteId, ...limparVazios(prioridades) }]),
     ])
 
     setLoading(false)
 
     const algumErro = [rFin, rUso, rPref, rPrio].find(r => r.error)
     if (algumErro) {
-      setErro('Perfil criado, mas houve um erro ao salvar parte dos dados: ' + algumErro.error.message)
+      setErro('Perfil criado, mas houve um erro ao salvar parte dos dados: ' + traduzirErro(algumErro.error.message))
       return
     }
 
@@ -155,7 +191,6 @@ export default function Cadastro() {
         <p className="text-gray-400 text-sm mb-1.5">Quanto mais detalhes, mais preciso o consultor e a IA conseguem ser.</p>
         <p className="text-gray-300 text-xs mb-6">Campos com <span className="text-red-400">*</span> são obrigatórios.</p>
 
-        {/* Indicador de passos com ícones */}
         <div className="flex items-center gap-1 mb-8">
           {PASSOS.map((p, i) => (
             <div key={p.titulo} className="flex-1 flex flex-col items-center gap-2">
@@ -235,9 +270,9 @@ function PassoDados({ pessoal, setPessoal, onNext }) {
           <option value="">Selecione</option>
           <option>Solteiro(a)</option><option>Casado(a)</option><option>Divorciado(a)</option><option>Viúvo(a)</option><option>União estável</option>
         </Select>
-        <Input label="Profissão" value={pessoal.profissao} onChange={e => set('profissao', e.target.value)} />
+        <Input label="Profissão" required value={pessoal.profissao} onChange={e => set('profissao', e.target.value)} />
       </div>
-      <Input label="Local de trabalho (opcional)" value={pessoal.empresa} onChange={e => set('empresa', e.target.value)} placeholder="Nome da empresa" />
+      <Input label="Local de trabalho" required value={pessoal.empresa} onChange={e => set('empresa', e.target.value)} placeholder="Nome da empresa" />
       <div className="grid grid-cols-[1fr_80px] gap-3">
         <Input label="Cidade" required value={pessoal.cidade} onChange={e => set('cidade', e.target.value)} />
         <Input label="UF" required maxLength={2} value={pessoal.estado} onChange={e => set('estado', e.target.value)} />
@@ -250,40 +285,66 @@ function PassoDados({ pessoal, setPessoal, onNext }) {
 
 function PassoFinanceiro({ financeiro, setFinanceiro, onNext, onBack }) {
   function set(campo, valor) { setFinanceiro({ ...financeiro, [campo]: valor }) }
+  
   return (
     <div className="space-y-4">
       <TituloPasso icon={<IconFinanceiro />}>Dados financeiros</TituloPasso>
+      
       <div className="grid grid-cols-2 gap-3">
         <Input label="Média de renda mensal" required value={financeiro.renda_mensal} onChange={e => set('renda_mensal', e.target.value)} placeholder="6500" />
         <Input label="Renda familiar" value={financeiro.renda_familiar} onChange={e => set('renda_familiar', e.target.value)} placeholder="9000" />
       </div>
+      
       <div className="grid grid-cols-2 gap-3">
-        <Input label="Valor disponível" required value={financeiro.valor_disponivel} onChange={e => set('valor_disponivel', e.target.value)} placeholder="90000" />
         <Input label="Valor de entrada" value={financeiro.entrada} onChange={e => set('entrada', e.target.value)} placeholder="20000" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
         <Input label="Parcela máxima" value={financeiro.parcela_maxima} onChange={e => set('parcela_maxima', e.target.value)} placeholder="1800" />
+      </div>
+      
+      <div className="grid grid-cols-2 gap-3">
         <Select label="Prazo máximo" value={financeiro.prazo_meses} onChange={e => set('prazo_meses', e.target.value)}>
-          <option value="">Selecione</option><option value="24">24 meses</option><option value="36">36 meses</option><option value="48">48 meses</option><option value="60">60 meses</option>
+          <option value="">Selecione</option>
+          <option value="24">24 meses</option>
+          <option value="36">36 meses</option>
+          <option value="48">48 meses</option>
+          <option value="60">60 meses</option>
+        </Select>
+        <Select label="Como pretende pagar?" required value={financeiro.forma_pagamento} onChange={e => set('forma_pagamento', e.target.value)}>
+          <option>Financiamento</option>
+          <option>À vista</option>
+          <option>Consórcio</option>
+          <option>Ainda não sei</option>
         </Select>
       </div>
-      <Select label="Como pretende pagar?" required value={financeiro.forma_pagamento} onChange={e => set('forma_pagamento', e.target.value)}>
-        <option>Financiamento</option><option>À vista</option><option>Consórcio</option><option>Ainda não sei</option>
-      </Select>
+      
       <div className="grid grid-cols-2 gap-3">
         <label className="flex items-center gap-2 text-sm text-gray-600">
-          <input type="checkbox" checked={financeiro.tem_veiculo_troca} onChange={e => set('tem_veiculo_troca', e.target.checked)} className="accent-blue-600" />Tenho veículo para troca
+          <input type="checkbox" checked={financeiro.tem_veiculo_troca} onChange={e => set('tem_veiculo_troca', e.target.checked)} className="accent-blue-600" />
+          Tenho veículo para troca
         </label>
         <label className="flex items-center gap-2 text-sm text-gray-600">
-          <input type="checkbox" checked={financeiro.tem_restricao} onChange={e => set('tem_restricao', e.target.checked)} className="accent-blue-600" />Possuo restrição no nome
+          <input type="checkbox" checked={financeiro.tem_restricao} onChange={e => set('tem_restricao', e.target.checked)} className="accent-blue-600" />
+          Possuo restrição no nome
         </label>
       </div>
+      
       {financeiro.tem_veiculo_troca && (
         <Input label="Valor estimado do veículo" value={financeiro.valor_veiculo_troca} onChange={e => set('valor_veiculo_troca', e.target.value)} placeholder="35000" />
       )}
+      
       <Input label="Banco de preferência (opcional)" value={financeiro.banco_preferencia} onChange={e => set('banco_preferencia', e.target.value)} placeholder="Ex: Santander, BV, Itaú" />
+
+      <label className="flex items-start gap-2.5 text-sm text-gray-600 bg-blue-50/50 rounded-lg p-4">
+        <input
+          type="checkbox"
+          checked={financeiro.autoriza_analise_financiamento}
+          onChange={e => set('autoriza_analise_financiamento', e.target.checked)}
+          className="accent-blue-600 mt-0.5"
+        />
+        <span>Autorizo que meu consultor leve meus dados aos bancos parceiros para consultar minhas condições de financiamento (score bancário). Isso não é uma aprovação de crédito — apenas uma autorização para consulta.</span>
+      </label>
+
       <NavBotoes onNext={onNext} onBack={onBack} />
-    </div>
+    </div> 
   )
 }
 
@@ -320,25 +381,17 @@ function PassoPreferencias({ preferencias, setPreferencias, onNext, onBack }) {
         {['Hatch', 'Sedan', 'SUV', 'Picape', 'Minivan', 'Esportivo', 'Luxo'].map(v => <option key={v}>{v}</option>)}
       </Select>
       <div className="grid grid-cols-2 gap-3">
-        <Input label="Preço mínimo" value={preferencias.preco_min} onChange={e => set('preco_min', e.target.value)} placeholder="60000" />
-        <Input label="Preço máximo" value={preferencias.preco_max} onChange={e => set('preco_max', e.target.value)} placeholder="90000" />
+        <Input label="Preço mínimo que pretende gastar" value={preferencias.preco_min} onChange={e => set('preco_min', e.target.value)} placeholder="60000" />
+        <Input label="Preço máximo que pretende gastar" required value={preferencias.preco_max} onChange={e => set('preco_max', e.target.value)} placeholder="90000" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Input label="Ano mínimo" value={preferencias.ano_min} onChange={e => set('ano_min', e.target.value)} placeholder="2019" />
         <Input label="Ano máximo" value={preferencias.ano_max} onChange={e => set('ano_max', e.target.value)} placeholder="2024" />
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="Quilometragem máxima" value={preferencias.km_maxima} onChange={e => set('km_maxima', e.target.value)} placeholder="80000" />
-        <Input label="Potência mínima (opcional)" value={preferencias.potencia_min} onChange={e => set('potencia_min', e.target.value)} placeholder="120 cv" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Select label="Combustível" value={preferencias.combustivel} onChange={e => set('combustivel', e.target.value)}>
-          {['Flex', 'Gasolina', 'Etanol', 'Diesel', 'Elétrico', 'Híbrido'].map(v => <option key={v}>{v}</option>)}
-        </Select>
-        <Select label="Transmissão" value={preferencias.cambio} onChange={e => set('cambio', e.target.value)}>
-          {['Automático', 'Manual', 'CVT', 'Automatizado'].map(v => <option key={v}>{v}</option>)}
-        </Select>
-      </div>
+      <Input label="Quilometragem máxima" value={preferencias.km_maxima} onChange={e => set('km_maxima', e.target.value)} placeholder="80000" />
+      <Select label="Transmissão" value={preferencias.cambio} onChange={e => set('cambio', e.target.value)}>
+        {['Automático', 'Manual', 'CVT', 'Automatizado'].map(v => <option key={v}>{v}</option>)}
+      </Select>
       <Input label="Cor desejada (opcional)" value={preferencias.cor} onChange={e => set('cor', e.target.value)} placeholder="Sem preferência" />
       <div className="grid grid-cols-2 gap-3">
         <Input label="Marcas preferidas (opcional)" value={preferencias.marcas_preferidas} onChange={e => set('marcas_preferidas', e.target.value)} placeholder="Ex: Honda, Toyota" />

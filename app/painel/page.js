@@ -3,6 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabaseClient'
+import { simularFinanciamento } from '../lib/simulacaoFinanciamento'
+import StatusConsultoria from '../components/StatusConsultoria'
+import DocumentosCliente from '../components/DocumentosCliente'
+import FaqInterativo from '../components/FaqInterativo'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'],
@@ -47,10 +51,10 @@ export default function Painel() {
         .single()
 
       if (perfilError) {
-        setErro('Não foi possível carregar seu perfil: ' + perfilError.message)
-        setCarregando(false)
-        return
-      }
+  setErro('Esta conta não é de cliente. Se você é consultor, admin ou concessionária, saia e acesse o painel correspondente.')
+  setCarregando(false)
+  return
+}
 
       setPerfil(perfilData)
       const clienteId = perfilData.id
@@ -77,7 +81,14 @@ export default function Painel() {
     await supabase.auth.signOut()
     router.push('/login')
   }
-
+  const simulacao = (financeiro && preferencias)
+  ? simularFinanciamento({
+      precoVeiculo: preferencias.preco_max,
+      renda: financeiro.renda_mensal,
+      entrada: financeiro.entrada,
+      prazoMeses: financeiro.prazo_meses,
+    })
+  : null
   if (carregando) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
@@ -123,6 +134,11 @@ export default function Painel() {
           </div>
         </div>
 
+        <div className="mt-8 pt-8 border-t border-gray-50">
+            <p className="text-xs font-mono text-blue-600 uppercase tracking-widest mb-5">Status da consultoria</p>
+            <StatusConsultoria etapaAtual={perfil?.etapa_atual} />
+          </div>
+
         {erro && (
           <p className="text-red-600 text-sm mb-5 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{erro}</p>
         )}
@@ -145,7 +161,6 @@ export default function Painel() {
           <Secao titulo="Dados financeiros" icon={<IconFinanceiro />}>
             <InfoRow label="Média de renda mensal" value={formatarMoeda(financeiro.renda_mensal)} />
             <InfoRow label="Renda familiar" value={formatarMoeda(financeiro.renda_familiar)} />
-            <InfoRow label="Valor disponível" value={formatarMoeda(financeiro.valor_disponivel)} />
             <InfoRow label="Entrada" value={formatarMoeda(financeiro.entrada)} />
             <InfoRow label="Parcela máxima" value={formatarMoeda(financeiro.parcela_maxima)} />
             <InfoRow label="Prazo máximo" value={financeiro.prazo_meses ? `${financeiro.prazo_meses} meses` : null} />
@@ -153,6 +168,29 @@ export default function Painel() {
             <InfoRow label="Veículo para troca" value={financeiro.tem_veiculo_troca ? `Sim — ${formatarMoeda(financeiro.valor_veiculo_troca) || 'valor não informado'}` : 'Não'} />
             <InfoRow label="Restrição no nome" value={financeiro.tem_restricao ? 'Sim' : 'Não'} />
             <InfoRow label="Banco de preferência" value={financeiro.banco_preferencia} />
+	    <InfoRow label="Autoriza análise de financiamento" value={financeiro.autoriza_analise_financiamento ? '✓ Sim, autorizado' : 'Não autorizado'} />
+          </Secao>
+        )}
+	
+	{simulacao && (
+          <Secao titulo="Simulação de financiamento" icon={<IconFinanceiro />}>
+            <p className="text-xs text-gray-400 mb-4">
+              Estimativa educativa baseada na sua renda informada — não é uma aprovação de crédito real.
+            </p>
+            <div className={`rounded-xl p-5 mb-4 ${
+              simulacao.status === 'confortavel' ? 'bg-green-50' :
+              simulacao.status === 'atencao' ? 'bg-amber-50' : 'bg-red-50'
+            }`}>
+              <p className={`text-sm font-medium ${
+                simulacao.status === 'confortavel' ? 'text-green-700' :
+                simulacao.status === 'atencao' ? 'text-amber-700' : 'text-red-700'
+              }`}>
+                {simulacao.mensagem}
+              </p>
+            </div>
+            <InfoRow label="Valor a financiar" value={formatarMoeda(simulacao.valorFinanciado)} />
+            <InfoRow label="Parcela estimada" value={formatarMoeda(simulacao.parcelaEstimada)} />
+            <InfoRow label="Comprometimento da renda" value={`${simulacao.comprometimentoRenda}%`} />
           </Secao>
         )}
 
@@ -171,12 +209,16 @@ export default function Painel() {
             <InfoRow label="Faixa de preço" value={formatarFaixa(preferencias.preco_min, preferencias.preco_max, formatarMoeda)} />
             <InfoRow label="Faixa de ano" value={formatarFaixa(preferencias.ano_min, preferencias.ano_max)} />
             <InfoRow label="Quilometragem máxima" value={preferencias.km_maxima ? `${preferencias.km_maxima} km` : null} />
-            <InfoRow label="Potência mínima" value={preferencias.potencia_min} />
-            <InfoRow label="Combustível" value={preferencias.combustivel} />
             <InfoRow label="Transmissão" value={preferencias.cambio} />
             <InfoRow label="Cor desejada" value={preferencias.cor} />
             <InfoRow label="Marcas preferidas" value={preferencias.marcas_preferidas} />
             <InfoRow label="Marcas que não aceita" value={preferencias.marcas_recusadas} />
+          </Secao>
+        )}
+
+	{perfil && usuario && (
+          <Secao titulo="Meus documentos" icon={<IconDocumento />}>
+            <DocumentosCliente clienteId={perfil.id} authId={usuario.id} />
           </Secao>
         )}
 
@@ -198,7 +240,9 @@ export default function Painel() {
             </div>
           </Secao>
         )}
-
+	<div className="flex justify-center mt-8">
+          <FaqInterativo />
+        </div>
       </div>
     </div>
   )
@@ -264,4 +308,7 @@ function IconVeiculo() {
 }
 function IconPrioridade() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l2.9 6.3 6.8.6-5.1 4.6 1.5 6.7L12 16.9l-6.1 3.3 1.5-6.7-5.1-4.6 6.8-.6L12 2z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round"/></svg>
+}
+function IconDocumento() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round"/><path d="M14 2v6h6" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round"/></svg>
 }

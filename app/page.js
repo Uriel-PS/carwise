@@ -110,10 +110,10 @@ export default function Home() {
                 bg: 'bg-blue-50',
               },
               {
-                title: 'Estoque + leads qualificados', desc: 'Concessionária cadastra seu estoque; enviamos clientes com perfil e orçamento validados.', tag: 'B2B',
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6" stroke="#B07830" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
-                bg: 'bg-amber-50',
-              },
+  title: 'Concessionárias parceiras', desc: 'Rede de concessionárias parceiras que agiliza sua escolha, com opções sempre atualizadas para o carro certo aparecer mais rápido.',
+  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6" stroke="#B07830" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
+  bg: 'bg-amber-50',
+},
               {
                 title: 'Avaliação mecânica', desc: 'Rede de oficinas parceiras credenciadas realiza a inspeção técnica completa.', tag: 'serviço avulso',
                 icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 01-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 015.4-5.4l-3 3-2-2 3-3z" stroke="#3F9E6D" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
@@ -129,7 +129,6 @@ export default function Home() {
                 <div className={`w-10 h-10 rounded-[10px] ${s.bg} flex items-center justify-center mb-5`}>{s.icon}</div>
                 <h3 className="font-[family-name:var(--font-display)] font-semibold text-lg text-blue-950 mb-2">{s.title}</h3>
                 <p className="text-sm text-gray-500 mb-5 leading-relaxed">{s.desc}</p>
-                <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-blue-50 text-blue-700">{s.tag}</span>
               </div>
             ))}
           </div>
@@ -148,7 +147,7 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-y-12">
             {[
               'Perfil e busca', 'Contato com o consultor', 'Negociação e vistoria',
-              'Financiamento e papelada', 'Test drive e fechamento', 'Entrega e pós-venda',
+	      'Test drive', 'Fechamento e contratos', 'Entrega e pós-venda',
             ].map((step, i) => (
               <div key={step} className="flex items-start">
                 <div className="text-center w-[150px] px-1">
@@ -281,6 +280,7 @@ export default function Home() {
             </div>
             <div>
               <h5 className="text-xs uppercase text-gray-400 font-semibold tracking-wide mb-4">Empresa</h5>
+	      <a href="/quem-somos" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Sobre</a>
               <a href="/contato?assunto=trabalhe" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Trabalhe conosco</a>
               <a href="/contato?assunto=outro" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Contato</a>
               <a href="/acesso-interno" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Acesso interno</a>

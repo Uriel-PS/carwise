@@ -6,6 +6,8 @@ import { supabase } from '../../../lib/supabaseClient'
 import { calcularCompatibilidade } from '../../../lib/compatibilidade'
 import StatusConsultoria from '../../../components/StatusConsultoria'
 import DocumentosClienteLeitura from '../../../components/DocumentosClienteLeitura'
+import HistoricoNegociacao from '../../../components/HistoricoNegociacao'
+import Agendamentos from '../../../components/Agendamentos'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'], ['conforto', 'Conforto'], ['tecnologia', 'Tecnologia'],
@@ -29,6 +31,7 @@ export default function DetalheClienteAdmin() {
   const [ranking, setRanking] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+const [propostas, setPropostas] = useState([])
 
   useEffect(() => {
     async function carregar() {
@@ -81,6 +84,14 @@ export default function DetalheClienteAdmin() {
         `)
         .eq('status', 'ativo')
 
+    const { data: propostasData } = await supabase
+  .from('propostas')
+  .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ) )')
+  .eq('cliente_id', clienteId)
+  .order('created_at', { ascending: false })
+
+setPropostas(propostasData || [])
+
       if (!veiculosError && veiculosData) {
         const clienteParaCalculo = {
           preferencias: rPref.data || {},
@@ -101,6 +112,8 @@ export default function DetalheClienteAdmin() {
   }, [router, clienteId])
 
   async function mudarEtapa(novaEtapa) {
+    if (perfil?.etapa_atual === novaEtapa) return // evita evento duplicado
+
     const { error } = await supabase
       .from('clientes')
       .update({ etapa_atual: novaEtapa })
@@ -108,6 +121,17 @@ export default function DetalheClienteAdmin() {
 
     if (!error) {
       setPerfil({ ...perfil, etapa_atual: novaEtapa })
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const { data: consultorData } = await supabase
+        .from('consultores').select('nome').eq('auth_id', sessionData.session.user.id).maybeSingle()
+
+      await supabase.from('historico_negociacao').insert([{
+        cliente_id: clienteId,
+        autor_tipo: 'consultor',
+        autor_nome: consultorData?.nome || 'Consultor',
+        evento: novaEtapa,
+      }])
     }
   }
 
@@ -168,6 +192,43 @@ export default function DetalheClienteAdmin() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
           <h2 className="font-semibold text-blue-950 text-lg mb-5">Documentos do cliente</h2>
           <DocumentosClienteLeitura clienteId={perfil.id} />
+        </div>
+
+	<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+  <h2 className="font-semibold text-blue-950 text-lg mb-5">Propostas apresentadas</h2>
+  {propostas.length === 0 ? (
+    <p className="text-gray-400 text-sm">Nenhuma proposta apresentada ainda.</p>
+  ) : (
+    <div className="space-y-3">
+      {propostas.map((p) => {
+        const dados = p.origem === 'estoque'
+          ? { marca: p.veiculos?.marca, modelo: p.veiculos?.modelo, versao: p.veiculos?.versao, ano: `${p.veiculos?.ano_fabricacao}/${p.veiculos?.ano_modelo}`, preco: p.veiculos?.preco, fonte: p.veiculos?.concessionarias?.nome_fantasia }
+          : { marca: p.marca_externa, modelo: p.modelo_externa, versao: '', ano: p.ano_externa, preco: p.preco_externa, fonte: 'Encontrado por fora' }
+
+        return (
+          <div key={p.id} className="border border-gray-100 rounded-xl p-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-semibold text-blue-950">{dados.marca} {dados.modelo} {dados.versao}</p>
+                <p className="text-xs text-gray-400">{dados.ano} · {dados.fonte}</p>
+                {dados.preco && <p className="text-sm text-gray-600 mt-1">{Number(dados.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>}
+              </div>
+              <span className={`text-xs font-mono px-2 py-0.5 rounded-full shrink-0 ${
+                p.status === 'aceita' ? 'bg-green-50 text-green-600' : p.status === 'recusada' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+              }`}>
+                {p.status}
+              </span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )}
+</div>
+
+	<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+          <h2 className="font-semibold text-blue-950 text-lg mb-5">Histórico da negociação</h2>
+          <HistoricoNegociacao clienteId={perfil.id} podeAdicionar={true} podeVerOcultos={true} />
         </div>
 
         {ranking.length > 0 && (

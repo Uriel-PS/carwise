@@ -206,6 +206,22 @@ export default function PainelAdmin() {
           <Metrica label="Mensagens não lidas" valor={mensagens.filter(m => !m.lida).length} destaque={mensagens.filter(m => !m.lida).length > 0} />
         </div>
 
+        <a
+          href="/admin/chats"
+          className="inline-flex items-center gap-2 bg-white border border-gray-200 text-blue-950 text-sm font-semibold px-5 py-2.5 rounded-lg hover:border-blue-300 transition mb-10"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="#2B5FE0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          Ver todas as conversas
+        </a>
+
+	<a
+	href="/admin/pagamentos"
+          className="inline-flex items-center gap-2 bg-white border border-gray-200 text-blue-950 text-sm font-semibold px-5 py-2.5 rounded-lg hover:border-blue-300 transition mb-10 ml-3"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#2B5FE0" strokeWidth="1.6"/><path d="M2 10h20" stroke="#2B5FE0" strokeWidth="1.6"/></svg>
+          Ver pagamentos
+        </a>
+
         {erro && (
           <p className="text-red-600 text-sm mb-5 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{erro}</p>
         )}

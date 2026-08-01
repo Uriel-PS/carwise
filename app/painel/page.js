@@ -7,6 +7,10 @@ import { simularFinanciamento } from '../lib/simulacaoFinanciamento'
 import StatusConsultoria from '../components/StatusConsultoria'
 import DocumentosCliente from '../components/DocumentosCliente'
 import FaqInterativo from '../components/FaqInterativo'
+import HistoricoNegociacao from '../components/HistoricoNegociacao'
+import ChatConsultor from '../components/ChatConsultor'
+import Agendamentos from '../components/Agendamentos'
+import Pagamentos from '../components/Pagamentos'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'],
@@ -29,6 +33,8 @@ export default function Painel() {
   const [uso, setUso] = useState(null)
   const [preferencias, setPreferencias] = useState(null)
   const [prioridades, setPrioridades] = useState(null)
+  const [naoLidas, setNaoLidas] = useState(0)
+  const [propostas, setPropostas] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
 
@@ -51,10 +57,10 @@ export default function Painel() {
         .single()
 
       if (perfilError) {
-  setErro('Esta conta não é de cliente. Se você é consultor, admin ou concessionária, saia e acesse o painel correspondente.')
-  setCarregando(false)
-  return
-}
+        setErro('Esta conta não é de cliente. Se você é consultor, admin ou concessionária, saia e acesse o painel correspondente.')
+        setCarregando(false)
+        return
+      }
 
       setPerfil(perfilData)
       const clienteId = perfilData.id
@@ -71,6 +77,23 @@ export default function Painel() {
       setPreferencias(rPref.data)
       setPrioridades(rPrio.data)
 
+      const { count } = await supabase
+        .from('mensagens_chat')
+        .select('*', { count: 'exact', head: true })
+        .eq('cliente_id', clienteId)
+        .eq('autor_tipo', 'consultor')
+        .eq('lida', false)
+
+      setNaoLidas(count || 0)
+
+      const { data: propostasData } = await supabase
+        .from('propostas')
+        .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ) )')
+        .eq('cliente_id', clienteId)
+        .order('created_at', { ascending: false })
+
+      setPropostas(propostasData || [])
+
       setCarregando(false)
     }
 
@@ -81,14 +104,12 @@ export default function Painel() {
     await supabase.auth.signOut()
     router.push('/login')
   }
-  const simulacao = (financeiro && preferencias)
-  ? simularFinanciamento({
-      precoVeiculo: preferencias.preco_max,
-      renda: financeiro.renda_mensal,
-      entrada: financeiro.entrada,
-      prazoMeses: financeiro.prazo_meses,
-    })
-  : null
+
+  async function reagirProposta(id, novoStatus) {
+    await supabase.from('propostas').update({ status: novoStatus }).eq('id', id)
+    setPropostas(propostas.map((p) => (p.id === id ? { ...p, status: novoStatus } : p)))
+  }
+
   if (carregando) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-blue-50">
@@ -96,6 +117,15 @@ export default function Painel() {
       </div>
     )
   }
+
+  const simulacao = (financeiro && preferencias)
+    ? simularFinanciamento({
+        precoVeiculo: preferencias.preco_max,
+        renda: financeiro.renda_mensal,
+        entrada: financeiro.entrada,
+        prazoMeses: financeiro.prazo_meses,
+      })
+    : null
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -132,17 +162,136 @@ export default function Painel() {
               Editar meu perfil
             </a>
           </div>
-        </div>
 
-        <div className="mt-8 pt-8 border-t border-gray-50">
+          <div className="mt-8 pt-8 border-t border-gray-50">
             <p className="text-xs font-mono text-blue-600 uppercase tracking-widest mb-5">Status da consultoria</p>
             <StatusConsultoria etapaAtual={perfil?.etapa_atual} />
           </div>
+        </div>
 
         {erro && (
           <p className="text-red-600 text-sm mb-5 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{erro}</p>
         )}
 
+        {/* 1. CHAT */}
+        {perfil && usuario && (
+          <Secao titulo={naoLidas > 0 ? `Chat com seu consultor (${naoLidas} nova${naoLidas > 1 ? 's' : ''})` : 'Chat com seu consultor'} icon={<IconChat />}>
+            <ChatConsultor
+              clienteId={perfil.id}
+              autorTipo="cliente"
+              autorId={usuario.id}
+              autorNome={perfil.nome}
+            />
+          </Secao>
+        )}
+
+        {/* 2. DOCUMENTOS */}
+        {perfil && usuario && (
+          <Secao titulo="Meus documentos" icon={<IconDocumento />}>
+            <DocumentosCliente clienteId={perfil.id} authId={usuario.id} />
+          </Secao>
+        )}
+
+        {/* 3. HISTÓRICO */}
+        {perfil && (
+          <Secao titulo="Histórico da negociação" icon={<IconDocumento />}>
+            <HistoricoNegociacao clienteId={perfil.id} podeAdicionar={false} />
+          </Secao>
+        )}
+
+        {/* PROPOSTAS ENCONTRADAS */}
+        {perfil && (
+          <Secao titulo="Propostas encontradas para você" icon={<IconVeiculo />}>
+            {propostas.length === 0 ? (
+              <p className="text-gray-400 text-sm">Seu consultor ainda não apresentou propostas. Assim que encontrar boas opções, elas aparecem aqui.</p>
+            ) : (
+              <div className="space-y-4">
+                {propostas.map((p) => {
+                  const dados = p.origem === 'estoque'
+                    ? {
+                        marca: p.veiculos?.marca,
+                        modelo: p.veiculos?.modelo,
+                        versao: p.veiculos?.versao,
+                        ano: `${p.veiculos?.ano_fabricacao}/${p.veiculos?.ano_modelo}`,
+                        preco: p.veiculos?.preco,
+                        fonte: p.veiculos?.concessionarias?.nome_fantasia,
+                      }
+                    : {
+                        marca: p.marca_externa,
+                        modelo: p.modelo_externa,
+                        versao: '',
+                        ano: p.ano_externa,
+                        preco: p.preco_externa,
+                        fonte: 'Encontrado pelo seu consultor',
+                      }
+
+                  return (
+                    <div key={p.id} className="border border-gray-100 rounded-xl p-5">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="font-semibold text-blue-950">{dados.marca} {dados.modelo} {dados.versao}</h3>
+                          <p className="text-xs text-gray-400">{dados.ano} · {dados.fonte}</p>
+                        </div>
+                        {dados.preco && (
+                          <p className="text-gray-800 font-semibold">
+                            {Number(dados.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                          </p>
+                        )}
+                      </div>
+
+                      {p.observacao_externa && (
+                        <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mb-3">{p.observacao_externa}</p>
+                      )}
+
+                      {p.link_externo && (
+                        <a href={p.link_externo} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline block mb-3">
+                          Ver anúncio original →
+                        </a>
+                      )}
+
+                      {p.status === 'apresentada' ? (
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            onClick={() => reagirProposta(p.id, 'aceita')}
+                            className="text-xs font-semibold bg-green-50 text-green-700 px-3 py-1.5 rounded-full hover:bg-green-100 transition"
+                          >
+                            ✓ Gostei
+                          </button>
+                          <button
+                            onClick={() => reagirProposta(p.id, 'recusada')}
+                            className="text-xs font-semibold bg-red-50 text-red-600 px-3 py-1.5 rounded-full hover:bg-red-100 transition"
+                          >
+                            Não é o que procuro
+                          </button>
+                        </div>
+                      ) : (
+                        <span className={`inline-block text-xs font-mono px-2.5 py-1 rounded-full mt-2 ${
+                          p.status === 'aceita' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
+                        }`}>
+                          {p.status === 'aceita' ? '✓ Você gostou desta opção' : 'Marcado como não interessante'}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </Secao>
+        )}
+
+	{perfil && (
+          <Secao titulo="Test drive" icon={<IconVeiculo />}>
+            <Agendamentos clienteId={perfil.id} autorTipo="cliente" podeGerenciar={false} />
+          </Secao>
+        )}
+
+	{perfil && (
+          <Secao titulo="Pagamento e plano" icon={<IconFinanceiro />}>
+            <Pagamentos clienteId={perfil.id} />
+          </Secao>
+        )}
+
+        {/* 4. DADOS PESSOAIS */}
         {perfil && (
           <Secao titulo="Dados pessoais" icon={<IconPessoa />}>
             <InfoRow label="Nome completo" value={perfil.nome} />
@@ -168,11 +317,11 @@ export default function Painel() {
             <InfoRow label="Veículo para troca" value={financeiro.tem_veiculo_troca ? `Sim — ${formatarMoeda(financeiro.valor_veiculo_troca) || 'valor não informado'}` : 'Não'} />
             <InfoRow label="Restrição no nome" value={financeiro.tem_restricao ? 'Sim' : 'Não'} />
             <InfoRow label="Banco de preferência" value={financeiro.banco_preferencia} />
-	    <InfoRow label="Autoriza análise de financiamento" value={financeiro.autoriza_analise_financiamento ? '✓ Sim, autorizado' : 'Não autorizado'} />
+            <InfoRow label="Autoriza análise de financiamento" value={financeiro.autoriza_analise_financiamento ? '✓ Sim, autorizado' : 'Não autorizado'} />
           </Secao>
         )}
-	
-	{simulacao && (
+
+        {simulacao && (
           <Secao titulo="Simulação de financiamento" icon={<IconFinanceiro />}>
             <p className="text-xs text-gray-400 mb-4">
               Estimativa educativa baseada na sua renda informada — não é uma aprovação de crédito real.
@@ -216,12 +365,6 @@ export default function Painel() {
           </Secao>
         )}
 
-	{perfil && usuario && (
-          <Secao titulo="Meus documentos" icon={<IconDocumento />}>
-            <DocumentosCliente clienteId={perfil.id} authId={usuario.id} />
-          </Secao>
-        )}
-
         {prioridades && (
           <Secao titulo="O que é mais importante para você" icon={<IconPrioridade />}>
             <div className="space-y-3">
@@ -240,9 +383,12 @@ export default function Painel() {
             </div>
           </Secao>
         )}
-	<div className="flex justify-center mt-8">
+
+        {/* 5. CENTRAL DE AJUDA */}
+        <div className="flex justify-center mt-8">
           <FaqInterativo />
         </div>
+
       </div>
     </div>
   )
@@ -311,4 +457,7 @@ function IconPrioridade() {
 }
 function IconDocumento() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round"/><path d="M14 2v6h6" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round"/></svg>
+}
+function IconChat() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round"/></svg>
 }

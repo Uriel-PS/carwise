@@ -14,6 +14,7 @@ export default function PainelConsultor() {
   const [busca, setBusca] = useState('')
   const [aba, setAba] = useState('clientes')
   const [filtroResponsavel, setFiltroResponsavel] = useState('todos')
+const [mensagensNaoLidas, setMensagensNaoLidas] = useState({})
 
   async function carregarTudo() {
     const { data: sessionData } = await supabase.auth.getSession()
@@ -48,6 +49,21 @@ export default function PainelConsultor() {
     consultores ( nome )
   `)
   .order('created_at', { ascending: false })
+
+	// Busca contagem de mensagens não lidas por cliente
+    const { data: naoLidasData } = await supabase
+      .from('mensagens_chat')
+      .select('cliente_id')
+      .eq('autor_tipo', 'cliente')
+      .eq('lida', false)
+
+    const contagemPorCliente = {}
+    if (naoLidasData) {
+      naoLidasData.forEach((m) => {
+        contagemPorCliente[m.cliente_id] = (contagemPorCliente[m.cliente_id] || 0) + 1
+      })
+    }
+    setMensagensNaoLidas(contagemPorCliente)
 
     if (clientesError) {
       setErro('Erro ao carregar clientes: ' + clientesError.message)
@@ -149,6 +165,13 @@ export default function PainelConsultor() {
       <div className="max-w-6xl mx-auto px-6 py-8">
 
         {/* Abas */}
+	<a
+	href="/consultor/catalogo"
+          className="inline-flex items-center gap-2 bg-white border border-gray-200 text-blue-950 text-sm font-semibold px-4 py-2 rounded-lg hover:border-blue-300 transition mb-4"
+        >
+          Ver catálogo completo de veículos →
+        </a>
+
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setAba('clientes')}
@@ -218,7 +241,16 @@ export default function PainelConsultor() {
                       onClick={() => router.push(`/consultor/cliente/${c.id}`)}
                       className="border-t border-gray-50 hover:bg-blue-50/30 transition cursor-pointer"
                     >
-                      <td className="px-6 py-4 font-medium text-blue-950">{c.nome}</td>
+                      <td className="px-6 py-4 font-medium text-blue-950">
+                      <div className="flex items-center gap-2">
+                        {c.nome}
+                        {mensagensNaoLidas[c.id] > 0 && (
+                          <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center">
+                            {mensagensNaoLidas[c.id]}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                       <td className="px-6 py-4 text-gray-500">
                         <div>{c.email}</div>
                         <div className="text-xs text-gray-400">{c.telefone || '—'}</div>

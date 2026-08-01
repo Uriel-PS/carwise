@@ -6,6 +6,10 @@ import { supabase } from '../../../lib/supabaseClient'
 import { calcularCompatibilidade } from '../../../lib/compatibilidade'
 import StatusConsultoria from '../../../components/StatusConsultoria'
 import DocumentosClienteLeitura from '../../../components/DocumentosClienteLeitura'
+import HistoricoNegociacao from '../../../components/HistoricoNegociacao'
+import Agendamentos from '../../../components/Agendamentos'
+import ChatConsultor from '../../../components/ChatConsultor'
+import { useCallback } from 'react'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'],
@@ -33,8 +37,19 @@ export default function DetalheCliente() {
   const [preferencias, setPreferencias] = useState(null)
   const [prioridades, setPrioridades] = useState(null)
   const [ranking, setRanking] = useState([])
+const [qtdVisivel, setQtdVisivel] = useState(4)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+const [consultorLogado, setConsultorLogado] = useState(null)
+const [propostas, setPropostas] = useState([])
+  const [veiculosEstoque, setVeiculosEstoque] = useState([])
+  const [mostrarFormProposta, setMostrarFormProposta] = useState(false)
+  const [origemProposta, setOrigemProposta] = useState('estoque')
+  const [veiculoEscolhido, setVeiculoEscolhido] = useState('')
+  const [propostaExterna, setPropostaExterna] = useState({
+    marca_externa: '', modelo_externa: '', ano_externa: '', preco_externa: '', observacao_externa: '', link_externo: '',
+  })
+  const [salvandoProposta, setSalvandoProposta] = useState(false)
 
   useEffect(() => {
     async function carregar() {
@@ -58,6 +73,8 @@ export default function DetalheCliente() {
         router.push('/consultor/login')
         return
       }
+
+      setConsultorLogado(consultorData)
 
       const { data: perfilData, error: perfilError } = await supabase
         .from('clientes')
@@ -108,7 +125,16 @@ export default function DetalheCliente() {
           .sort((a, b) => b.percentual - a.percentual)
 
         setRanking(rankingCalculado)
+        setVeiculosEstoque(veiculosData)
       }
+
+      const { data: propostasData } = await supabase
+        .from('propostas')
+        .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ) )')
+        .eq('cliente_id', clienteId)
+        .order('created_at', { ascending: false })
+
+      setPropostas(propostasData || [])
 
       setCarregando(false)
     }
@@ -117,6 +143,8 @@ export default function DetalheCliente() {
   }, [router, clienteId])
 
   async function mudarEtapa(novaEtapa) {
+    if (perfil?.etapa_atual === novaEtapa) return // evita evento duplicado
+
     const { error } = await supabase
       .from('clientes')
       .update({ etapa_atual: novaEtapa })
@@ -124,7 +152,71 @@ export default function DetalheCliente() {
 
     if (!error) {
       setPerfil({ ...perfil, etapa_atual: novaEtapa })
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const { data: consultorData } = await supabase
+        .from('consultores').select('nome').eq('auth_id', sessionData.session.user.id).maybeSingle()
+
+      await supabase.from('historico_negociacao').insert([{
+        cliente_id: clienteId,
+        autor_tipo: 'consultor',
+        autor_nome: consultorData?.nome || 'Consultor',
+        evento: novaEtapa,
+      }])
     }
+  }
+
+async function carregarPropostas() {
+    const { data } = await supabase
+      .from('propostas')
+      .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ) )')
+      .eq('cliente_id', clienteId)
+      .order('created_at', { ascending: false })
+    setPropostas(data || [])
+  }
+
+  async function criarProposta(e) {
+    e.preventDefault()
+    setSalvandoProposta(true)
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const authId = sessionData.session.user.id
+
+    const dados = origemProposta === 'estoque'
+      ? {
+          cliente_id: clienteId,
+          veiculo_id: veiculoEscolhido,
+          origem: 'estoque',
+          criado_por: authId,
+        }
+      : {
+          cliente_id: clienteId,
+          origem: 'externa',
+          criado_por: authId,
+          marca_externa: propostaExterna.marca_externa,
+          modelo_externa: propostaExterna.modelo_externa,
+          ano_externa: propostaExterna.ano_externa,
+          preco_externa: propostaExterna.preco_externa || null,
+          observacao_externa: propostaExterna.observacao_externa,
+          link_externo: propostaExterna.link_externo,
+        }
+
+    const { error } = await supabase.from('propostas').insert([dados])
+
+    setSalvandoProposta(false)
+
+    if (!error) {
+      setMostrarFormProposta(false)
+      setVeiculoEscolhido('')
+      setPropostaExterna({ marca_externa: '', modelo_externa: '', ano_externa: '', preco_externa: '', observacao_externa: '', link_externo: '' })
+      carregarPropostas()
+    }
+  }
+
+  async function removerProposta(id) {
+    if (!confirm('Remover esta proposta?')) return
+    await supabase.from('propostas').delete().eq('id', id)
+    carregarPropostas()
   }
 
   if (carregando) {
@@ -189,7 +281,7 @@ export default function DetalheCliente() {
             <p className="text-xs text-gray-400 mb-6">Veículos do estoque comparados ao perfil deste cliente, do mais ao menos compatível.</p>
 
             <div className="space-y-4">
-              {ranking.slice(0, 8).map((item, i) => (
+              {ranking.slice(0, qtdVisivel).map((item, i) => (
                 <div key={item.veiculo.id} className="border border-gray-100 rounded-xl p-5">
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -243,6 +335,14 @@ export default function DetalheCliente() {
                 </div>
               ))}
             </div>
+            {ranking.length > qtdVisivel && (
+              <button
+                onClick={() => setQtdVisivel(qtdVisivel + 4)}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-800 mt-4"
+              >
+                Ver mais {Math.min(4, ranking.length - qtdVisivel)} veículo{ranking.length - qtdVisivel > 1 ? 's' : ''} →
+              </button>
+            )}
           </div>
         )}
 
@@ -252,12 +352,126 @@ export default function DetalheCliente() {
           </div>
         )}
 
+	<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="font-semibold text-blue-950 text-lg">Propostas apresentadas ao cliente</h2>
+            <button
+              onClick={() => setMostrarFormProposta(!mostrarFormProposta)}
+              className="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            >
+              {mostrarFormProposta ? 'Cancelar' : '+ Nova proposta'}
+            </button>
+          </div>
+
+          {mostrarFormProposta && (
+            <form onSubmit={criarProposta} className="bg-blue-50/50 rounded-xl p-6 mb-6 space-y-4">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOrigemProposta('estoque')}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${origemProposta === 'estoque' ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 border border-gray-200'}`}
+                >
+                  Do estoque parceiro
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrigemProposta('externa')}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${origemProposta === 'externa' ? 'bg-blue-600 text-white' : 'bg-white text-gray-500 border border-gray-200'}`}
+                >
+                  Encontrado por fora
+                </button>
+              </div>
+
+              {origemProposta === 'estoque' ? (
+                <select
+                  value={veiculoEscolhido}
+                  onChange={(e) => setVeiculoEscolhido(e.target.value)}
+                  required
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white"
+                >
+                  <option value="">Selecione um veículo do estoque</option>
+                  {veiculosEstoque.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.marca} {v.modelo} {v.versao} — {v.ano_fabricacao}/{v.ano_modelo} — {v.concessionarias?.nome_fantasia}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input type="text" placeholder="Marca" required value={propostaExterna.marca_externa} onChange={(e) => setPropostaExterna({ ...propostaExterna, marca_externa: e.target.value })} className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
+                    <input type="text" placeholder="Modelo" required value={propostaExterna.modelo_externa} onChange={(e) => setPropostaExterna({ ...propostaExterna, modelo_externa: e.target.value })} className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input type="text" placeholder="Ano" value={propostaExterna.ano_externa} onChange={(e) => setPropostaExterna({ ...propostaExterna, ano_externa: e.target.value })} className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
+                    <input type="text" placeholder="Preço" value={propostaExterna.preco_externa} onChange={(e) => setPropostaExterna({ ...propostaExterna, preco_externa: e.target.value })} className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
+                  </div>
+                  <input type="text" placeholder="Link do anúncio (opcional)" value={propostaExterna.link_externo} onChange={(e) => setPropostaExterna({ ...propostaExterna, link_externo: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
+                  <textarea placeholder="Observações sobre essa opção" rows={2} value={propostaExterna.observacao_externa} onChange={(e) => setPropostaExterna({ ...propostaExterna, observacao_externa: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 resize-none" />
+                </>
+              )}
+
+              <button type="submit" disabled={salvandoProposta} className="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+                {salvandoProposta ? 'Enviando...' : 'Apresentar proposta ao cliente'}
+              </button>
+            </form>
+          )}
+
+          <div className="space-y-3">
+            {propostas.map((p) => {
+              const dados = p.origem === 'estoque'
+                ? { marca: p.veiculos?.marca, modelo: p.veiculos?.modelo, versao: p.veiculos?.versao, ano: `${p.veiculos?.ano_fabricacao}/${p.veiculos?.ano_modelo}`, preco: p.veiculos?.preco, fonte: p.veiculos?.concessionarias?.nome_fantasia }
+                : { marca: p.marca_externa, modelo: p.modelo_externa, versao: '', ano: p.ano_externa, preco: p.preco_externa, fonte: 'Encontrado por fora' }
+
+              return (
+                <div key={p.id} className="border border-gray-100 rounded-xl p-4 flex justify-between items-start">
+                  <div>
+                    <p className="text-sm font-semibold text-blue-950">{dados.marca} {dados.modelo} {dados.versao}</p>
+                    <p className="text-xs text-gray-400">{dados.ano} · {dados.fonte}</p>
+                    {dados.preco && <p className="text-sm text-gray-600 mt-1">{Number(dados.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>}
+                    <span className={`inline-block text-xs font-mono px-2 py-0.5 rounded-full mt-2 ${
+                      p.status === 'aceita' ? 'bg-green-50 text-green-600' : p.status === 'recusada' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                    }`}>
+                      {p.status}
+                    </span>
+                  </div>
+                  <button onClick={() => removerProposta(p.id)} className="text-xs text-red-400 hover:text-red-600">Remover</button>
+                </div>
+              )
+            })}
+            {propostas.length === 0 && <p className="text-gray-400 text-sm">Nenhuma proposta apresentada ainda.</p>}
+          </div>
+        </div>
+
+	<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+          <h2 className="font-semibold text-blue-950 text-lg mb-5">Test drive</h2>
+          <Agendamentos clienteId={clienteId} autorTipo="consultor" podeGerenciar={true} />
+        </div>
+
 	{perfil && (
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+    <h2 className="font-semibold text-blue-950 text-lg mb-5">Documentos do cliente</h2>
+    <DocumentosClienteLeitura clienteId={perfil.id} />
+  </div>
+)}
+
+<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+  <h2 className="font-semibold text-blue-950 text-lg mb-5">Histórico da negociação</h2>
+  <HistoricoNegociacao clienteId={perfil.id} podeAdicionar={true} />
+</div>
+
+{consultorLogado && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
-            <h2 className="font-semibold text-blue-950 text-lg mb-5">Documentos do cliente</h2>
-            <DocumentosClienteLeitura clienteId={perfil.id} />
+            <h2 className="font-semibold text-blue-950 text-lg mb-5">Chat com o cliente</h2>
+            <ChatConsultor
+              clienteId={clienteId}
+              autorTipo="consultor"
+              autorId={consultorLogado.auth_id}
+              autorNome={consultorLogado.nome}
+            />
           </div>
         )}
+	
 
         {perfil && (
           <Secao titulo="Dados pessoais">

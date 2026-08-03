@@ -11,6 +11,8 @@ import HistoricoNegociacao from '../components/HistoricoNegociacao'
 import ChatConsultor from '../components/ChatConsultor'
 import Agendamentos from '../components/Agendamentos'
 import Pagamentos from '../components/Pagamentos'
+import BloqueioPlano from '../components/BloqueioPlano'
+import Contratos from '../components/Contratos'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'],
@@ -35,6 +37,7 @@ export default function Painel() {
   const [prioridades, setPrioridades] = useState(null)
   const [naoLidas, setNaoLidas] = useState(0)
   const [propostas, setPropostas] = useState([])
+const [temPlanoAtivo, setTemPlanoAtivo] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
 
@@ -93,6 +96,15 @@ export default function Painel() {
         .order('created_at', { ascending: false })
 
       setPropostas(propostasData || [])
+
+      const { data: pagamentoConfirmado } = await supabase
+        .from('pagamentos')
+        .select('id')
+        .eq('cliente_id', clienteId)
+        .eq('status', 'confirmado')
+        .maybeSingle()
+
+      setTemPlanoAtivo(!!pagamentoConfirmado)
 
       setCarregando(false)
     }
@@ -174,7 +186,11 @@ export default function Painel() {
         )}
 
         {/* 1. CHAT */}
-        {perfil && usuario && (
+        {perfil && usuario && !temPlanoAtivo && (
+          <BloqueioPlano titulo="Chat com seu consultor" />
+        )}
+
+        {perfil && usuario && temPlanoAtivo && (
           <Secao titulo={naoLidas > 0 ? `Chat com seu consultor (${naoLidas} nova${naoLidas > 1 ? 's' : ''})` : 'Chat com seu consultor'} icon={<IconChat />}>
             <ChatConsultor
               clienteId={perfil.id}
@@ -285,10 +301,22 @@ export default function Painel() {
           </Secao>
         )}
 
-	{perfil && (
-          <Secao titulo="Pagamento e plano" icon={<IconFinanceiro />}>
-            <Pagamentos clienteId={perfil.id} />
+	{perfil && !temPlanoAtivo && (
+          <BloqueioPlano titulo="Contratos" />
+        )}
+
+        {perfil && temPlanoAtivo && (
+          <Secao titulo="Contratos" icon={<IconDocumento />}>
+            <Contratos clienteId={perfil.id} podeGerar={false} nomeCliente={perfil.nome} cpfCliente={perfil.cpf} />
           </Secao>
+        )}
+
+	{perfil && (
+          <div id="pagamento">
+            <Secao titulo="Pagamento e plano" icon={<IconFinanceiro />}>
+              <Pagamentos clienteId={perfil.id} />
+            </Secao>
+          </div>
         )}
 
         {/* 4. DADOS PESSOAIS */}

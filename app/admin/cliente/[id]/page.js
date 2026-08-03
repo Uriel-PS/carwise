@@ -8,6 +8,7 @@ import StatusConsultoria from '../../../components/StatusConsultoria'
 import DocumentosClienteLeitura from '../../../components/DocumentosClienteLeitura'
 import HistoricoNegociacao from '../../../components/HistoricoNegociacao'
 import Agendamentos from '../../../components/Agendamentos'
+import Contratos from '../../../components/Contratos'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'], ['conforto', 'Conforto'], ['tecnologia', 'Tecnologia'],
@@ -225,6 +226,16 @@ setPropostas(propostasData || [])
     </div>
   )}
 </div>
+
+<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+  <h2 className="font-semibold text-blue-950 text-lg mb-5">Test drive</h2>
+  <Agendamentos clienteId={clienteId} autorTipo="consultor" podeGerenciar={true} />
+</div>
+
+<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+          <h2 className="font-semibold text-blue-950 text-lg mb-5">Contratos</h2>
+          <Contratos clienteId={clienteId} podeGerar={true} nomeCliente={perfil?.nome} cpfCliente={perfil?.cpf} />
+        </div>
 
 	<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
           <h2 className="font-semibold text-blue-950 text-lg mb-5">Histórico da negociação</h2>

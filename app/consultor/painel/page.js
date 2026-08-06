@@ -172,6 +172,10 @@ const [mensagensNaoLidas, setMensagensNaoLidas] = useState({})
           Ver catálogo completo de veículos →
         </a>
 
+	<a href="/consultor/agenda" className="inline-flex items-center gap-2 bg-white border border-gray-200 text-blue-950 text-sm font-semibold px-4 py-2 rounded-lg hover:border-blue-300 transition mb-4 ml-3">
+          Ver minha agenda →
+        </a>
+
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setAba('clientes')}

@@ -125,36 +125,9 @@ export default function Contratos({ clienteId, podeGerar = false, nomeCliente, c
   return (
     <div>
       {podeGerar && (
-        <div className="mb-5">
-          {!mostrarForm ? (
-            <button
-              onClick={() => setMostrarForm(true)}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-full transition"
-            >
-              + Gerar novo contrato
-            </button>
-          ) : (
-            <form onSubmit={gerarContrato} className="bg-blue-50/50 rounded-xl p-4 space-y-3">
-              <select
-                value={planoEscolhido}
-                onChange={(e) => setPlanoEscolhido(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white"
-              >
-                <option value="Básico">Básico — R$199</option>
-                <option value="Premium">Premium — R$499</option>
-                <option value="Concierge">Concierge — R$999</option>
-              </select>
-              <div className="flex gap-2">
-                <button type="submit" disabled={gerando} className="text-xs font-semibold bg-blue-600 text-white px-3 py-1.5 rounded-full hover:bg-blue-700 transition disabled:opacity-50">
-                  {gerando ? 'Gerando...' : 'Gerar contrato'}
-                </button>
-                <button type="button" onClick={() => setMostrarForm(false)} className="text-xs font-semibold text-gray-500 px-3 py-1.5">
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
+        <p className="text-xs text-gray-400 mb-5">
+          Os contratos são gerados automaticamente quando um pagamento é confirmado, na tela de Pagamentos.
+        </p>
       )}
 
       {contratos.length === 0 ? (

@@ -11,6 +11,7 @@ import Agendamentos from '../../../components/Agendamentos'
 import ChatConsultor from '../../../components/ChatConsultor'
 import { useCallback } from 'react'
 import Contratos from '../../../components/Contratos'
+import ChatFlutuante from '../../../components/ChatFlutuante'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'],
@@ -466,19 +467,6 @@ async function carregarPropostas() {
   <HistoricoNegociacao clienteId={perfil.id} podeAdicionar={true} />
 </div>
 
-{consultorLogado && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
-            <h2 className="font-semibold text-blue-950 text-lg mb-5">Chat com o cliente</h2>
-            <ChatConsultor
-              clienteId={clienteId}
-              autorTipo="consultor"
-              autorId={consultorLogado.auth_id}
-              autorNome={consultorLogado.nome}
-            />
-          </div>
-        )}
-	
-
         {perfil && (
           <Secao titulo="Dados pessoais">
             <InfoRow label="Nome completo" value={perfil.nome} />
@@ -549,8 +537,20 @@ async function carregarPropostas() {
           </Secao>
         )}
 
-      </div>
+</div>
+
+      {consultorLogado && (
+        <ChatFlutuante
+          clienteId={clienteId}
+          autorTipo="consultor"
+          autorId={consultorLogado.auth_id}
+          autorNome={consultorLogado.nome}
+          tituloChat={perfil?.nome}
+        />
+      )}
     </div>
+  )
+}
   )
 }
 

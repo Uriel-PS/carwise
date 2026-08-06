@@ -13,6 +13,7 @@ import Agendamentos from '../components/Agendamentos'
 import Pagamentos from '../components/Pagamentos'
 import BloqueioPlano from '../components/BloqueioPlano'
 import Contratos from '../components/Contratos'
+import ChatFlutuante from '../components/ChatFlutuante'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'],
@@ -188,17 +189,6 @@ const [temPlanoAtivo, setTemPlanoAtivo] = useState(false)
         {/* 1. CHAT */}
         {perfil && usuario && !temPlanoAtivo && (
           <BloqueioPlano titulo="Chat com seu consultor" />
-        )}
-
-        {perfil && usuario && temPlanoAtivo && (
-          <Secao titulo={naoLidas > 0 ? `Chat com seu consultor (${naoLidas} nova${naoLidas > 1 ? 's' : ''})` : 'Chat com seu consultor'} icon={<IconChat />}>
-            <ChatConsultor
-              clienteId={perfil.id}
-              autorTipo="cliente"
-              autorId={usuario.id}
-              autorNome={perfil.nome}
-            />
-          </Secao>
         )}
 
         {/* 2. DOCUMENTOS */}
@@ -418,6 +408,17 @@ const [temPlanoAtivo, setTemPlanoAtivo] = useState(false)
         </div>
 
       </div>
+
+      {temPlanoAtivo && perfil && usuario && (
+        <ChatFlutuante
+          clienteId={perfil.id}
+          autorTipo="cliente"
+          autorId={usuario.id}
+          autorNome={perfil.nome}
+          tituloChat="Seu consultor"
+          naoLidas={naoLidas}
+        />
+      )}
     </div>
   )
 }

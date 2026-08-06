@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
+import { gerarTextoContrato } from '../../lib/gerarContrato'
 
 export default function PagamentosAdmin() {
   const router = useRouter()
@@ -26,7 +27,7 @@ export default function PagamentosAdmin() {
 
       const { data: pagamentosData } = await supabase
         .from('pagamentos')
-        .select('*, clientes ( nome, email, telefone )')
+        .select('*, clientes ( id, nome, email, telefone, cpf )')
         .order('created_at', { ascending: false })
 
       setPagamentos(pagamentosData || [])
@@ -37,16 +38,37 @@ export default function PagamentosAdmin() {
 
   async function confirmarPagamento(id, metodo) {
     const { data: sessionData } = await supabase.auth.getSession()
+    const authId = sessionData.session.user.id
 
     await supabase
       .from('pagamentos')
       .update({
         status: 'confirmado',
         metodo,
-        confirmado_por: sessionData.session.user.id,
+        confirmado_por: authId,
         confirmado_em: new Date().toISOString(),
       })
       .eq('id', id)
+
+    // Busca o pagamento completo (com dados do cliente) para gerar o contrato
+    const pagamento = pagamentos.find((p) => p.id === id)
+
+    if (pagamento) {
+      const texto = gerarTextoContrato({
+        nomeCliente: pagamento.clientes?.nome || 'Cliente',
+        cpfCliente: pagamento.clientes?.cpf || 'não informado',
+        plano: pagamento.plano,
+        valor: pagamento.valor,
+      })
+
+      await supabase.from('contratos').insert([{
+        cliente_id: pagamento.cliente_id,
+        pagamento_id: id,
+        plano: pagamento.plano,
+        conteudo: texto,
+        criado_por: authId,
+      }])
+    }
 
     setPagamentos(pagamentos.map((p) => p.id === id ? { ...p, status: 'confirmado', metodo } : p))
   }

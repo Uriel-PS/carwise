@@ -8,7 +8,6 @@ import StatusConsultoria from '../components/StatusConsultoria'
 import DocumentosCliente from '../components/DocumentosCliente'
 import FaqInterativo from '../components/FaqInterativo'
 import HistoricoNegociacao from '../components/HistoricoNegociacao'
-import ChatConsultor from '../components/ChatConsultor'
 import Agendamentos from '../components/Agendamentos'
 import Pagamentos from '../components/Pagamentos'
 import BloqueioPlano from '../components/BloqueioPlano'
@@ -38,7 +37,7 @@ export default function Painel() {
   const [prioridades, setPrioridades] = useState(null)
   const [naoLidas, setNaoLidas] = useState(0)
   const [propostas, setPropostas] = useState([])
-const [temPlanoAtivo, setTemPlanoAtivo] = useState(false)
+  const [temPlanoAtivo, setTemPlanoAtivo] = useState(false)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
 
@@ -186,27 +185,45 @@ const [temPlanoAtivo, setTemPlanoAtivo] = useState(false)
           <p className="text-red-600 text-sm mb-5 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{erro}</p>
         )}
 
+        {/* PAGAMENTO — sempre visível, é o que desbloqueia o resto */}
+        {perfil && (
+          <div id="pagamento">
+            <Secao titulo="Pagamento e plano" icon={<IconFinanceiro />}>
+              <Pagamentos clienteId={perfil.id} />
+            </Secao>
+          </div>
+        )}
+
         {/* 1. CHAT */}
         {perfil && usuario && !temPlanoAtivo && (
           <BloqueioPlano titulo="Chat com seu consultor" />
         )}
 
         {/* 2. DOCUMENTOS */}
-        {perfil && usuario && (
+        {perfil && usuario && !temPlanoAtivo && (
+          <BloqueioPlano titulo="Meus documentos" />
+        )}
+        {perfil && usuario && temPlanoAtivo && (
           <Secao titulo="Meus documentos" icon={<IconDocumento />}>
             <DocumentosCliente clienteId={perfil.id} authId={usuario.id} />
           </Secao>
         )}
 
         {/* 3. HISTÓRICO */}
-        {perfil && (
+        {perfil && !temPlanoAtivo && (
+          <BloqueioPlano titulo="Histórico da negociação" />
+        )}
+        {perfil && temPlanoAtivo && (
           <Secao titulo="Histórico da negociação" icon={<IconDocumento />}>
             <HistoricoNegociacao clienteId={perfil.id} podeAdicionar={false} />
           </Secao>
         )}
 
         {/* PROPOSTAS ENCONTRADAS */}
-        {perfil && (
+        {perfil && !temPlanoAtivo && (
+          <BloqueioPlano titulo="Propostas encontradas para você" />
+        )}
+        {perfil && temPlanoAtivo && (
           <Secao titulo="Propostas encontradas para você" icon={<IconVeiculo />}>
             {propostas.length === 0 ? (
               <p className="text-gray-400 text-sm">Seu consultor ainda não apresentou propostas. Assim que encontrar boas opções, elas aparecem aqui.</p>
@@ -285,28 +302,24 @@ const [temPlanoAtivo, setTemPlanoAtivo] = useState(false)
           </Secao>
         )}
 
-	{perfil && (
+        {/* TEST DRIVE */}
+        {perfil && !temPlanoAtivo && (
+          <BloqueioPlano titulo="Test drive" />
+        )}
+        {perfil && temPlanoAtivo && (
           <Secao titulo="Test drive" icon={<IconVeiculo />}>
             <Agendamentos clienteId={perfil.id} autorTipo="cliente" podeGerenciar={false} />
           </Secao>
         )}
 
-	{perfil && !temPlanoAtivo && (
+        {/* CONTRATOS */}
+        {perfil && !temPlanoAtivo && (
           <BloqueioPlano titulo="Contratos" />
         )}
-
         {perfil && temPlanoAtivo && (
           <Secao titulo="Contratos" icon={<IconDocumento />}>
             <Contratos clienteId={perfil.id} podeGerar={false} nomeCliente={perfil.nome} cpfCliente={perfil.cpf} />
           </Secao>
-        )}
-
-	{perfil && (
-          <div id="pagamento">
-            <Secao titulo="Pagamento e plano" icon={<IconFinanceiro />}>
-              <Pagamentos clienteId={perfil.id} />
-            </Secao>
-          </div>
         )}
 
         {/* 4. DADOS PESSOAIS */}
@@ -402,7 +415,7 @@ const [temPlanoAtivo, setTemPlanoAtivo] = useState(false)
           </Secao>
         )}
 
-        {/* 5. CENTRAL DE AJUDA */}
+        {/* 5. CENTRAL DE AJUDA — sempre visível */}
         <div className="flex justify-center mt-8">
           <FaqInterativo />
         </div>

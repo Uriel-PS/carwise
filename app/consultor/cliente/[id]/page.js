@@ -551,8 +551,6 @@ async function carregarPropostas() {
     </div>
   )
 }
-  )
-}
 
 function Secao({ titulo, children }) {
   return (

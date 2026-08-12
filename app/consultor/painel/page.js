@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -46,7 +46,8 @@ const [mensagensNaoLidas, setMensagensNaoLidas] = useState({})
     id, nome, email, telefone, cidade, estado, created_at, consultor_id,
     clientes_financeiro ( forma_pagamento ),
     clientes_preferencias ( categoria, preco_max ),
-    consultores ( nome )
+    consultores ( nome ),
+    pagamentos ( plano, status )
   `)
   .order('created_at', { ascending: false })
 
@@ -226,70 +227,62 @@ const [mensagensNaoLidas, setMensagensNaoLidas] = useState({})
               <ChipFiltro ativo={filtroResponsavel === 'sem-consultor'} onClick={() => setFiltroResponsavel('sem-consultor')}>Sem consultor</ChipFiltro>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50/70 text-left text-[11px] text-gray-400 uppercase tracking-wider">
-                    <th className="px-6 py-3.5 font-semibold">Nome</th>
-                    <th className="px-6 py-3.5 font-semibold">Contato</th>
-                    <th className="px-6 py-3.5 font-semibold">Cidade</th>
-                    <th className="px-6 py-3.5 font-semibold">Procura</th>
-                    <th className="px-6 py-3.5 font-semibold">Orçamento</th>
-                    <th className="px-6 py-3.5 font-semibold">Responsável</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clientesFiltrados.map((c) => (
-                    <tr
-                      key={c.id}
-                      onClick={() => router.push(`/consultor/cliente/${c.id}`)}
-                      className="border-t border-gray-50 hover:bg-blue-50/30 transition cursor-pointer"
-                    >
-                      <td className="px-6 py-4 font-medium text-blue-950">
-                      <div className="flex items-center gap-2">
-                        {c.nome}
-                        {mensagensNaoLidas[c.id] > 0 && (
-                          <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center">
-                            {mensagensNaoLidas[c.id]}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                      <td className="px-6 py-4 text-gray-500">
-                        <div>{c.email}</div>
-                        <div className="text-xs text-gray-400">{c.telefone || '—'}</div>
-                      </td>
-                      <td className="px-6 py-4 text-gray-500">{c.cidade ? `${c.cidade}/${c.estado}` : '—'}</td>
-                      <td className="px-6 py-4 text-gray-500">{c.clientes_preferencias?.[0]?.categoria || '—'}</td>
-                      <td className="px-6 py-4 text-gray-600">
-  {c.clientes_preferencias?.[0]?.preco_max
-    ? Number(c.clientes_preferencias[0].preco_max).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
-    : '—'}
-</td>
-                      <td className="px-6 py-4">
-                        {c.consultor_id ? (
-                          <span className="text-xs text-gray-500">{c.consultores?.nome || '—'}</span>
-                        ) : (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); assumirCliente(c.id) }}
-                            className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-full transition"
-                          >
-                            Assumir
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {clientesFiltrados.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-14 text-center text-gray-400 text-sm">
-                        Nenhum cliente encontrado.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {(() => {
+              let recentItems = []
+              try {
+                recentItems = JSON.parse(localStorage.getItem('recent_clients_consultor') || '[]')
+              } catch (e) {}
+
+              // Backward compatibility: some might be strings, new ones are objects
+              const recentMap = {}
+              recentItems.forEach((item, index) => {
+                const id = typeof item === 'object' ? item.id : item
+                const ts = typeof item === 'object' ? item.timestamp : null
+                recentMap[String(id)] = { index, timestamp: ts }
+              })
+
+              const sortByRecent = (a, b) => {
+                const itemA = recentMap[String(a.id)]
+                const itemB = recentMap[String(b.id)]
+                if (itemA && itemB) return itemA.index - itemB.index
+                if (itemA) return -1
+                if (itemB) return 1
+                return new Date(b.created_at) - new Date(a.created_at) // default
+              }
+
+              // Inject timestamp into client object for UI
+              const clientesSorted = [...clientesFiltrados].map(c => ({
+                ...c,
+                ultimoAcesso: recentMap[String(c.id)]?.timestamp
+              })).sort(sortByRecent)
+
+              const clientesComPlano = clientesSorted.filter(c => c.pagamentos?.some(p => p.status === 'confirmado'))
+              const clientesSemPlano = clientesSorted.filter(c => !c.pagamentos?.some(p => p.status === 'confirmado'))
+
+              return (
+                <>
+                  <h2 className="text-sm font-bold text-gray-700 mb-2 px-1">Clientes com Plano Ativo</h2>
+                  <SecaoTabela maxHeight="600px">
+                    <TabelaClientes 
+                      clientes={clientesComPlano} 
+                      router={router} 
+                      mensagensNaoLidas={mensagensNaoLidas} 
+                      assumirCliente={assumirCliente} 
+                    />
+                  </SecaoTabela>
+
+                  <h2 className="text-sm font-bold text-gray-700 mb-2 px-1 mt-8">Demais Clientes (Sem Plano)</h2>
+                  <SecaoTabela maxHeight="220px">
+                    <TabelaClientes 
+                      clientes={clientesSemPlano} 
+                      router={router} 
+                      mensagensNaoLidas={mensagensNaoLidas} 
+                      assumirCliente={assumirCliente} 
+                    />
+                  </SecaoTabela>
+                </>
+              )
+            })()}
           </>
         )}
 
@@ -359,5 +352,142 @@ function ChipFiltro({ ativo, onClick, children }) {
     >
       {children}
     </button>
+  )
+}
+
+function SecaoTabela({ children, maxHeight = '220px' }) {
+  const [expandido, setExpandido] = useState(false)
+  const [precisaExpandir, setPrecisaExpandir] = useState(false)
+  const innerRef = useRef(null)
+
+  useEffect(() => {
+    const el = innerRef.current
+    if (!el) return
+
+    const observer = new ResizeObserver(() => {
+      const maxH = parseInt(maxHeight.replace('px', ''))
+      if (el.scrollHeight > maxH) {
+        setPrecisaExpandir(true)
+      } else {
+        setPrecisaExpandir(false)
+      }
+    })
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [maxHeight])
+
+  return (
+    <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
+      <div
+        className={`transition-all duration-300 overflow-hidden ${
+          expandido || !precisaExpandir ? '' : ''
+        }`}
+        style={{
+          maxHeight: expandido || !precisaExpandir ? 'none' : maxHeight,
+          ...( !expandido && precisaExpandir ? { maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)' } : {} )
+        }}
+      >
+        <div ref={innerRef}>
+          {children}
+        </div>
+      </div>
+      {!expandido && precisaExpandir && (
+        <div className="absolute bottom-0 left-0 right-0 flex justify-center items-end pb-2 pointer-events-none">
+          <button
+            onClick={() => setExpandido(true)}
+            className="pointer-events-auto text-sm font-semibold text-blue-600 hover:text-blue-800 transition bg-white/90 backdrop-blur border border-blue-100 shadow-sm px-5 py-2 rounded-full"
+          >
+            Ver mais
+          </button>
+        </div>
+      )}
+      {expandido && precisaExpandir && (
+        <div className="mt-4 pb-4 text-center">
+          <button
+            onClick={() => setExpandido(false)}
+            className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition bg-blue-50 px-4 py-1.5 rounded-full"
+          >
+            Ver menos
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TabelaClientes({ clientes, router, mensagensNaoLidas, assumirCliente }) {
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="bg-gray-50/70 text-left text-[11px] text-gray-400 uppercase tracking-wider">
+          <th className="px-6 py-3.5 font-semibold">Nome</th>
+          <th className="px-6 py-3.5 font-semibold">Contato</th>
+          <th className="px-6 py-3.5 font-semibold">Cidade</th>
+          <th className="px-6 py-3.5 font-semibold">Procura</th>
+          <th className="px-6 py-3.5 font-semibold">Orçamento</th>
+          <th className="px-6 py-3.5 font-semibold">Plano</th>
+          <th className="px-6 py-3.5 font-semibold">Responsável</th>
+        </tr>
+      </thead>
+      <tbody>
+        {clientes.map((c) => (
+          <tr
+            key={c.id}
+            onClick={() => router.push(`/consultor/cliente/${c.id}`)}
+            className="border-t border-gray-50 hover:bg-blue-50/30 transition cursor-pointer"
+          >
+            <td className="px-6 py-4 font-medium text-blue-950">
+              <div className="flex items-center gap-2">
+                {c.nome}
+                {mensagensNaoLidas[c.id] > 0 && (
+                  <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center">
+                    {mensagensNaoLidas[c.id]}
+                  </span>
+                )}
+              </div>
+              {c.ultimoAcesso && (
+                <div className="text-[10px] text-gray-400 font-normal mt-0.5">
+                  Acessado: {new Date(c.ultimoAcesso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </div>
+              )}
+            </td>
+            <td className="px-6 py-4 text-gray-500">
+              <div>{c.email}</div>
+              <div className="text-xs text-gray-400">{c.telefone || '—'}</div>
+            </td>
+            <td className="px-6 py-4 text-gray-500">{c.cidade ? `${c.cidade}/${c.estado}` : '—'}</td>
+            <td className="px-6 py-4 text-gray-500">{c.clientes_preferencias?.[0]?.categoria || '—'}</td>
+            <td className="px-6 py-4 text-gray-600">
+              {c.clientes_preferencias?.[0]?.preco_max
+                ? Number(c.clientes_preferencias[0].preco_max).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+                : '—'}
+            </td>
+            <td className="px-6 py-4 text-gray-500 text-xs font-semibold">
+              {c.pagamentos?.find(p => p.status === 'confirmado')?.plano || '—'}
+            </td>
+            <td className="px-6 py-4">
+              {c.consultor_id ? (
+                <span className="text-xs text-gray-500">{c.consultores?.nome || '—'}</span>
+              ) : (
+                <button
+                  onClick={(e) => { e.stopPropagation(); assumirCliente(c.id) }}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-full transition"
+                >
+                  Assumir
+                </button>
+              )}
+            </td>
+          </tr>
+        ))}
+        {clientes.length === 0 && (
+          <tr>
+            <td colSpan={7} className="px-6 py-14 text-center text-gray-400 text-sm">
+              Nenhum cliente encontrado.
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
   )
 }

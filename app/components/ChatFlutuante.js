@@ -11,7 +11,7 @@ export default function ChatFlutuante({ clienteId, autorTipo, autorId, autorNome
   return (
     <>
       {aberto && (
-        <div className="fixed bottom-24 right-6 z-50 w-[340px] bg-white rounded-2xl shadow-[0_20px_60px_-16px_rgba(10,34,71,0.35)] border border-gray-100 overflow-hidden">
+        <div className="fixed bottom-4 right-6 z-50 w-[340px] bg-white rounded-2xl shadow-[0_20px_60px_-16px_rgba(10,34,71,0.35)] border border-gray-100 overflow-hidden">
           <div className="bg-blue-950 px-5 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center shrink-0 text-white font-semibold text-sm">
@@ -40,7 +40,7 @@ export default function ChatFlutuante({ clienteId, autorTipo, autorId, autorNome
       {!aberto && (
         <button
           onClick={() => setAberto(true)}
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-white rounded-full shadow-[0_10px_30px_-6px_rgba(10,34,71,0.3)] border border-gray-100 pl-3 pr-5 py-2.5 hover:-translate-y-0.5 transition ${
+          className={`fixed bottom-4 right-6 z-50 flex items-center gap-3 bg-white rounded-full shadow-[0_10px_30px_-6px_rgba(10,34,71,0.3)] border border-gray-100 pl-3 pr-5 py-2.5 hover:-translate-y-0.5 transition ${
             naoLidas > 0 ? 'animate-[pulse_2s_ease-in-out_infinite]' : ''
           }`}
         >

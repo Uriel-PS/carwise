@@ -111,7 +111,7 @@ export default function Pagamentos({ clienteId }) {
       {temPendente && (
         <div className="bg-amber-50 rounded-xl p-4 mt-4">
           <p className="text-xs text-amber-800">
-            Seu consultor vai entrar em contato para combinar a forma de pagamento (PIX ou transferência) e confirmar sua contratação.
+            O admin vai entrar em contato para combinar a forma de pagamento (PIX ou transferência) e confirmar sua contratação.
           </p>
         </div>
       )}

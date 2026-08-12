@@ -45,6 +45,10 @@ export default function MenuPerfil({ nome, onLogout }) {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#6B7A99" strokeWidth="1.6" strokeLinejoin="round"/><path d="M14 2v6h6" stroke="#6B7A99" strokeWidth="1.6" strokeLinejoin="round"/></svg>
             Meus dados completos
           </a>
+          <a href="/painel/planos" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="#6B7A99" strokeWidth="1.8" strokeLinejoin="round"/></svg>
+            Meus planos
+          </a>
           <button onClick={onLogout} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition w-full text-left border-t border-gray-50">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="#DC2626" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Sair

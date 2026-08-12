@@ -32,7 +32,8 @@ export default function DetalheClienteAdmin() {
   const [ranking, setRanking] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
-const [propostas, setPropostas] = useState([])
+  const [propostas, setPropostas] = useState([])
+  const [qtdVisivel, setQtdVisivel] = useState(4)
 
   useEffect(() => {
     async function carregar() {
@@ -63,6 +64,13 @@ const [propostas, setPropostas] = useState([])
       }
 
       setPerfil(perfilData)
+
+      try {
+        const recent = JSON.parse(localStorage.getItem('recent_clients_admin') || '[]')
+        const filteredRecent = recent.filter(item => (typeof item === 'object' ? item.id : item) !== clienteId)
+        const updatedRecent = [{ id: clienteId, timestamp: new Date().toISOString() }, ...filteredRecent].slice(0, 50)
+        localStorage.setItem('recent_clients_admin', JSON.stringify(updatedRecent))
+      } catch (e) {}
 
       const [rFin, rUso, rPref, rPrio] = await Promise.all([
         supabase.from('clientes_financeiro').select('*').eq('cliente_id', clienteId).maybeSingle(),
@@ -194,6 +202,81 @@ setPropostas(propostasData || [])
           <h2 className="font-semibold text-blue-950 text-lg mb-5">Documentos do cliente</h2>
           <DocumentosClienteLeitura clienteId={perfil.id} />
         </div>
+
+        {ranking.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+            <h2 className="font-semibold text-blue-950 text-lg mb-5">Ranking de Compatibilidade (Estoque atual)</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {ranking.slice(0, qtdVisivel).map((item, i) => (
+                <div key={item.veiculo.id} className="border border-gray-100 rounded-xl p-5 hover:border-blue-200 transition bg-white shadow-sm">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-mono bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">#{i + 1}</span>
+                        <h3 className="font-bold text-blue-950">
+                          {item.veiculo.marca} {item.veiculo.modelo} {item.veiculo.versao}
+                        </h3>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {item.veiculo.ano_fabricacao}/{item.veiculo.ano_modelo} · {item.veiculo.km ? `${item.veiculo.km} km` : '—'} · {item.veiculo.concessionarias?.nome_fantasia}
+                      </p>
+                    </div>
+                    <div className={`text-lg font-bold shrink-0 ${item.percentual >= 80 ? 'text-green-600' : item.percentual >= 60 ? 'text-amber-600' : 'text-gray-400'}`}>
+                      {item.percentual}%
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center mb-3 text-sm">
+                    <span className="text-gray-600 font-medium">
+                      {item.veiculo.preco ? Number(item.veiculo.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : '—'}
+                    </span>
+                    {item.veiculo.preco_negociacao && (
+                      <span className="text-amber-700 text-xs font-mono">
+                        mín. negociação: {Number(item.veiculo.preco_negociacao).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="w-full bg-gray-100 rounded-full h-1.5 mb-4 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${item.percentual >= 80 ? 'bg-green-500' : item.percentual >= 60 ? 'bg-amber-500' : 'bg-gray-300'}`}
+                      style={{ width: `${item.percentual}%` }}
+                    />
+                  </div>
+
+                  {item.motivos.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {item.motivos.map((m, idx) => (
+                        <span key={idx} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">✓ {m}</span>
+                      ))}
+                    </div>
+                  )}
+                  {item.atencao.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.atencao.map((a, idx) => (
+                        <span key={idx} className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">⚠ {a}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {ranking.length > qtdVisivel && (
+              <button
+                onClick={() => setQtdVisivel(qtdVisivel + 4)}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-800 mt-4"
+              >
+                Ver mais {Math.min(4, ranking.length - qtdVisivel)} veículo{ranking.length - qtdVisivel > 1 ? 's' : ''} →
+              </button>
+            )}
+          </div>
+        )}
+
+        {ranking.length === 0 && !carregando && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5 text-center text-gray-400 text-sm">
+            Nenhum veículo ativo no estoque para comparar ainda.
+          </div>
+        )}
 
 	<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
   <h2 className="font-semibold text-blue-950 text-lg mb-5">Propostas apresentadas</h2>

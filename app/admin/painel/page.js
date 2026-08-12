@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -10,6 +10,7 @@ export default function PainelAdmin() {
   const [clientes, setClientes] = useState([])
   const [consultores, setConsultores] = useState([])
   const [concessionarias, setConcessionarias] = useState([])
+  const [veiculos, setVeiculos] = useState([])
   const [mensagens, setMensagens] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
@@ -53,11 +54,12 @@ export default function PainelAdmin() {
 
     setAdmin(adminData)
 
-    const [rClientes, rConsultores, rConcessionarias, rMensagens] = await Promise.all([
-      supabase.from('clientes').select('id, nome, email, created_at, consultor_id, consultores ( nome )').order('created_at', { ascending: false }),
+    const [rClientes, rConsultores, rConcessionarias, rMensagens, rVeiculos] = await Promise.all([
+      supabase.from('clientes').select('id, nome, email, created_at, consultor_id, consultores ( nome ), pagamentos ( plano, status )').order('created_at', { ascending: false }),
       supabase.from('consultores').select('*').order('created_at', { ascending: false }),
       supabase.from('concessionarias').select('*').order('created_at', { ascending: false }),
       supabase.from('mensagens_contato').select('*').order('created_at', { ascending: false }),
+      supabase.from('veiculos').select('id, marca, modelo, versao, ano_fabricacao, ano_modelo, cor, cambio, combustivel, km, preco, preco_negociacao, status, concessionarias ( nome_fantasia, cidade, estado )').order('created_at', { ascending: false }),
     ])
 
     if (rClientes.error) setErro(rClientes.error.message)
@@ -65,6 +67,7 @@ export default function PainelAdmin() {
     setConsultores(rConsultores.data || [])
     setConcessionarias(rConcessionarias.data || [])
     setMensagens(rMensagens.data || [])
+    setVeiculos(rVeiculos.data || [])
     setCarregando(false)
   }
 
@@ -222,11 +225,29 @@ export default function PainelAdmin() {
           Ver pagamentos
         </a>
 
+        <a
+          href="/admin/catalogo"
+          className="inline-flex items-center gap-2 bg-white border border-gray-200 text-blue-950 text-sm font-semibold px-5 py-2.5 rounded-lg hover:border-blue-300 transition mb-10 ml-3"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 16l-1 2h18l-1-2M5 11l2-4h10l2 4v5H5v-5z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><circle cx="7" cy="14" r="1" fill="#2B5FE0"/><circle cx="17" cy="14" r="1" fill="#2B5FE0"/></svg>
+          Consultar catálogo
+        </a>
+
         {erro && (
           <p className="text-red-600 text-sm mb-5 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{erro}</p>
         )}
 
         {/* Gestão de consultores */}
+        <div className="flex justify-between items-end mb-6 flex-wrap gap-4">
+          <div>
+            <h1 className="font-[family-name:var(--font-display)] font-bold text-2xl text-blue-950 mb-1">
+              Visão geral do sistema
+            </h1>
+            <p className="text-gray-400 text-sm">
+              Aqui você gerencia consultores, concessionárias, clientes e estoque.
+            </p>
+          </div>
+        </div>
         <Cartao titulo="Consultores" icon={<IconConsultor />}
           acao={
             <button
@@ -360,42 +381,62 @@ export default function PainelAdmin() {
 
         {/* Clientes e atribuição */}
         <Cartao titulo="Clientes e atribuição de consultor" icon={<IconCliente />}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-[11px] text-gray-400 uppercase tracking-wider">
-                <th className="py-2 font-semibold">Nome</th>
-                <th className="py-2 font-semibold">E-mail</th>
-                <th className="py-2 font-semibold">Cadastro</th>
-                <th className="py-2 font-semibold">Consultor responsável</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clientes.slice(0, 15).map((c) => (
-                <tr key={c.id} className="border-t border-gray-50 hover:bg-blue-50/30 transition">
-                  <td
-                    className="py-3 font-medium text-blue-950 cursor-pointer hover:underline"
-                    onClick={() => router.push(`/admin/cliente/${c.id}`)}
-                  >
-                    {c.nome}
-                  </td>
-                  <td className="py-3 text-gray-500">{c.email}</td>
-                  <td className="py-3 text-gray-400 text-xs">{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>
-                  <td className="py-3">
-                    <select
-                      value={c.consultor_id || ''}
-                      onChange={(e) => reatribuirConsultor(c.id, e.target.value)}
-                      className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 bg-white focus:border-blue-400 focus:outline-none"
-                    >
-                      <option value="">Sem consultor</option>
-                      {consultores.filter(con => con.ativo).map((con) => (
-                        <option key={con.id} value={con.id}>{con.nome}</option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            {(() => {
+              let recentItems = []
+              try {
+                recentItems = JSON.parse(localStorage.getItem('recent_clients_admin') || '[]')
+              } catch (e) {}
+
+              // Backward compatibility: some might be strings, new ones are objects
+              const recentMap = {}
+              recentItems.forEach((item, index) => {
+                const id = typeof item === 'object' ? item.id : item
+                const ts = typeof item === 'object' ? item.timestamp : null
+                recentMap[String(id)] = { index, timestamp: ts }
+              })
+
+              const sortByRecent = (a, b) => {
+                const itemA = recentMap[String(a.id)]
+                const itemB = recentMap[String(b.id)]
+                if (itemA && itemB) return itemA.index - itemB.index
+                if (itemA) return -1
+                if (itemB) return 1
+                return new Date(b.created_at) - new Date(a.created_at) // default
+              }
+
+              // Inject timestamp into client object for UI
+              const clientesSorted = [...clientes].map(c => ({
+                ...c,
+                ultimoAcesso: recentMap[String(c.id)]?.timestamp
+              })).sort(sortByRecent)
+
+              const clientesComPlano = clientesSorted.filter(c => c.pagamentos?.some(p => p.status === 'confirmado'))
+              const clientesSemPlano = clientesSorted.filter(c => !c.pagamentos?.some(p => p.status === 'confirmado'))
+
+              return (
+                <>
+                  <h2 className="text-sm font-bold text-gray-700 mb-2 px-1">Clientes sem Plano</h2>
+                  <SecaoTabelaAdmin maxHeight="220px">
+                    <TabelaClientesAdmin 
+                      clientes={clientesSemPlano} 
+                      router={router} 
+                      reatribuirConsultor={reatribuirConsultor} 
+                      consultores={consultores}
+                    />
+                  </SecaoTabelaAdmin>
+
+                  <h2 className="text-sm font-bold text-gray-700 mb-2 px-1 mt-8">Clientes com Plano Ativo</h2>
+                  <SecaoTabelaAdmin maxHeight="600px">
+                    <TabelaClientesAdmin 
+                      clientes={clientesComPlano} 
+                      router={router} 
+                      reatribuirConsultor={reatribuirConsultor}
+                      consultores={consultores}
+                    />
+                  </SecaoTabelaAdmin>
+                </>
+              )
+            })()}
         </Cartao>
 
         {/* Mensagens de contato */}
@@ -434,6 +475,8 @@ export default function PainelAdmin() {
             )}
           </div>
         </Cartao>
+
+
 
       </div>
     </div>
@@ -506,4 +549,125 @@ function IconCliente() {
 }
 function IconMensagem() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6l9 6 9-6M3 6v12h18V6" stroke="#B07830" strokeWidth="1.6" strokeLinejoin="round"/></svg>
+}
+function IconVeiculo() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 16l-1 2h18l-1-2" stroke="#B07830" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><path d="M5 11l2-4h10l2 4v5H5v-5z" stroke="#B07830" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><circle cx="7" cy="14" r="1" fill="#B07830"/><circle cx="17" cy="14" r="1" fill="#B07830"/></svg>
+}
+
+function SecaoTabelaAdmin({ children, maxHeight = '220px' }) {
+  const [expandido, setExpandido] = useState(false)
+  const [precisaExpandir, setPrecisaExpandir] = useState(false)
+  const innerRef = useRef(null)
+
+  useEffect(() => {
+    const el = innerRef.current
+    if (!el) return
+
+    const observer = new ResizeObserver(() => {
+      const maxH = parseInt(maxHeight.replace('px', ''))
+      if (el.scrollHeight > maxH) {
+        setPrecisaExpandir(true)
+      } else {
+        setPrecisaExpandir(false)
+      }
+    })
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [maxHeight])
+
+  return (
+    <div className="relative border border-gray-100 rounded-xl overflow-hidden mb-6">
+      <div
+        className={`transition-all duration-300 overflow-hidden ${
+          expandido || !precisaExpandir ? '' : ''
+        }`}
+        style={{
+          maxHeight: expandido || !precisaExpandir ? 'none' : maxHeight,
+          ...( !expandido && precisaExpandir ? { maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)' } : {} )
+        }}
+      >
+        <div ref={innerRef}>
+          {children}
+        </div>
+      </div>
+      {!expandido && precisaExpandir && (
+        <div className="absolute bottom-0 left-0 right-0 flex justify-center items-end pb-2 pointer-events-none">
+          <button
+            onClick={() => setExpandido(true)}
+            className="pointer-events-auto text-sm font-semibold text-blue-600 hover:text-blue-800 transition bg-white/90 backdrop-blur border border-blue-100 shadow-sm px-5 py-2 rounded-full"
+          >
+            Ver mais
+          </button>
+        </div>
+      )}
+      {expandido && precisaExpandir && (
+        <div className="mt-4 pb-4 text-center">
+          <button
+            onClick={() => setExpandido(false)}
+            className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition bg-blue-50 px-4 py-1.5 rounded-full"
+          >
+            Ver menos
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TabelaClientesAdmin({ clientes, router, reatribuirConsultor, consultores }) {
+  return (
+    <table className="w-full text-sm">
+      <thead>
+        <tr className="bg-gray-50/70 text-left text-[11px] text-gray-400 uppercase tracking-wider">
+          <th className="px-6 py-3 font-semibold">Nome</th>
+          <th className="px-6 py-3 font-semibold">E-mail</th>
+          <th className="px-6 py-3 font-semibold">Cadastro</th>
+          <th className="px-6 py-3 font-semibold">Plano</th>
+          <th className="px-6 py-3 font-semibold">Consultor responsável</th>
+        </tr>
+      </thead>
+      <tbody>
+        {clientes.map((c) => (
+          <tr key={c.id} className="border-t border-gray-50 hover:bg-blue-50/30 transition">
+            <td
+              className="px-6 py-3 font-medium text-blue-950 cursor-pointer hover:underline"
+              onClick={() => router.push(`/admin/cliente/${c.id}`)}
+            >
+              <div>{c.nome}</div>
+              {c.ultimoAcesso && (
+                <div className="text-[10px] text-gray-400 font-normal mt-0.5 no-underline">
+                  Acessado: {new Date(c.ultimoAcesso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </div>
+              )}
+            </td>
+            <td className="px-6 py-3 text-gray-500">{c.email}</td>
+            <td className="px-6 py-3 text-gray-400 text-xs">{new Date(c.created_at).toLocaleDateString('pt-BR')}</td>
+            <td className="px-6 py-3 text-gray-500 text-xs font-semibold">
+              {c.pagamentos?.find(p => p.status === 'confirmado')?.plano || '—'}
+            </td>
+            <td className="px-6 py-3">
+              <select
+                value={c.consultor_id || ''}
+                onChange={(e) => reatribuirConsultor(c.id, e.target.value)}
+                className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-700 bg-white focus:border-blue-400 focus:outline-none"
+              >
+                <option value="">Sem consultor</option>
+                {consultores.filter(con => con.ativo).map((con) => (
+                  <option key={con.id} value={con.id}>{con.nome}</option>
+                ))}
+              </select>
+            </td>
+          </tr>
+        ))}
+        {clientes.length === 0 && (
+          <tr>
+            <td colSpan={5} className="px-6 py-8 text-center text-gray-400 text-sm">
+              Nenhum cliente encontrado.
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  )
 }

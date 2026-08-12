@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabaseClient'
 import StatusConsultoria from '../components/StatusConsultoria'
@@ -21,6 +21,7 @@ export default function Painel() {
   const [naoLidas, setNaoLidas] = useState(0)
   const [propostas, setPropostas] = useState([])
   const [temPlanoAtivo, setTemPlanoAtivo] = useState(false)
+  const [nomePlano, setNomePlano] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
 
@@ -66,16 +67,22 @@ export default function Painel() {
         .eq('cliente_id', clienteId)
         .order('created_at', { ascending: false })
 
-      setPropostas(propostasData || [])
+      const sortedPropostas = (propostasData || []).sort((a, b) => {
+        const prioridade = { aceita: 1, apresentada: 2, recusada: 3 }
+        return (prioridade[a.status] || 99) - (prioridade[b.status] || 99)
+      })
+
+      setPropostas(sortedPropostas)
 
       const { data: pagamentoConfirmado } = await supabase
         .from('pagamentos')
-        .select('id')
+        .select('id, plano')
         .eq('cliente_id', clienteId)
         .eq('status', 'confirmado')
         .maybeSingle()
 
       setTemPlanoAtivo(!!pagamentoConfirmado)
+      if (pagamentoConfirmado?.plano) setNomePlano(pagamentoConfirmado.plano)
 
       setCarregando(false)
     }
@@ -115,11 +122,23 @@ export default function Painel() {
 
       <div className="max-w-5xl mx-auto px-6 py-8">
 
-        <div className="bg-white rounded-2xl shadow-[0_20px_50px_-24px_rgba(10,34,71,0.15)] border border-gray-50 p-8 mb-5">
-          <p className="text-xs font-mono text-blue-600 uppercase tracking-widest mb-2">Bem-vindo de volta</p>
-          <h1 className="font-[family-name:var(--font-display)] font-bold text-2xl text-blue-950 mb-6">
-            {perfil?.nome || usuario?.email}
-          </h1>
+        <div className="bg-white rounded-2xl shadow-[0_20px_50px_-24px_rgba(10,34,71,0.15)] border border-gray-50 p-8 mb-5 relative">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <p className="text-xs font-mono text-blue-600 uppercase tracking-widest mb-2">Bem-vindo de volta</p>
+              <h1 className="font-[family-name:var(--font-display)] font-bold text-2xl text-blue-950">
+                {perfil?.nome || usuario?.email}
+              </h1>
+            </div>
+            
+            {temPlanoAtivo && nomePlano && (
+              <div className="bg-blue-50/80 text-blue-700 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 border border-blue-100 shadow-sm">
+                <IconFinanceiro />
+                Plano {nomePlano}
+              </div>
+            )}
+          </div>
+          
           <StatusConsultoria etapaAtual={perfil?.etapa_atual} />
         </div>
 
@@ -216,26 +235,22 @@ export default function Painel() {
                 <Agendamentos clienteId={perfil.id} autorTipo="cliente" podeGerenciar={false} />
               </Secao>
 
-              <Secao titulo="Meus documentos" icon={<IconDocumento />}>
-                <DocumentosCliente clienteId={perfil.id} authId={usuario.id} />
-              </Secao>
+
 
               <Secao titulo="Histórico da negociação" icon={<IconDocumento />}>
                 <HistoricoNegociacao clienteId={perfil.id} podeAdicionar={false} />
               </Secao>
 
-              <Secao titulo="Contratos" icon={<IconDocumento />}>
+              <Secao titulo="Contratos" icon={<IconDocumento />} expandivel={false}>
                 <Contratos clienteId={perfil.id} podeGerar={false} nomeCliente={perfil.nome} cpfCliente={perfil.cpf} />
               </Secao>
 
             </div>
 
             <div className="space-y-5">
-              <div id="pagamento">
-                <Secao titulo="Plano contratado" icon={<IconFinanceiro />}>
-                  <Pagamentos clienteId={perfil.id} />
-                </Secao>
-              </div>
+              <Secao titulo="Meus documentos" icon={<IconDocumento />}>
+                <DocumentosCliente clienteId={perfil.id} authId={usuario.id} />
+              </Secao>
 
               <div className="flex justify-center">
                 <FaqInterativo />
@@ -261,7 +276,30 @@ export default function Painel() {
   )
 }
 
-function Secao({ titulo, icon, children }) {
+function Secao({ titulo, icon, children, expandivel = true }) {
+  const [expandido, setExpandido] = useState(false)
+  const [precisaExpandir, setPrecisaExpandir] = useState(false)
+  const innerRef = useRef(null)
+
+  useEffect(() => {
+    if (!expandivel) return
+
+    const el = innerRef.current
+    if (!el) return
+
+    const observer = new ResizeObserver(() => {
+      if (el.scrollHeight > 350) {
+        setPrecisaExpandir(true)
+      } else {
+        setPrecisaExpandir(false)
+      }
+    })
+
+    observer.observe(el)
+
+    return () => observer.disconnect()
+  }, [expandivel])
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center gap-3 mb-5">
@@ -270,7 +308,38 @@ function Secao({ titulo, icon, children }) {
         </div>
         <h2 className="font-[family-name:var(--font-display)] font-semibold text-blue-950 text-base">{titulo}</h2>
       </div>
-      <div>{children}</div>
+      <div className="relative">
+        <div
+          className={`transition-all duration-300 overflow-hidden ${
+            !expandivel || expandido || !precisaExpandir ? '' : 'max-h-[350px]'
+          }`}
+          style={expandivel && !expandido && precisaExpandir ? { maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)' } : {}}
+        >
+          <div ref={expandivel ? innerRef : null}>
+            {children}
+          </div>
+        </div>
+        {expandivel && !expandido && precisaExpandir && (
+          <div className="absolute bottom-0 left-0 right-0 flex justify-center items-end pb-2">
+            <button
+              onClick={() => setExpandido(true)}
+              className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition bg-white/90 backdrop-blur border border-blue-100 shadow-sm px-5 py-2 rounded-full"
+            >
+              Ver mais
+            </button>
+          </div>
+        )}
+        {expandivel && expandido && precisaExpandir && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => setExpandido(false)}
+              className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition bg-blue-50 px-4 py-1.5 rounded-full"
+            >
+              Ver menos
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

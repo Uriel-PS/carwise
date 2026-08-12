@@ -37,7 +37,15 @@ export default function Agendamentos({ clienteId, autorTipo, podeGerenciar = fal
       .eq('cliente_id', clienteId)
       .order('data_hora', { ascending: true })
 
-    setAgendamentos(ag || [])
+    const sortedAgendamentos = (ag || []).sort((a, b) => {
+      const prioridade = { confirmado: 1, solicitado: 1, concluido: 2, cancelado: 3 }
+      const pA = prioridade[a.status] || 99
+      const pB = prioridade[b.status] || 99
+      if (pA !== pB) return pA - pB
+      return new Date(a.data_hora) - new Date(b.data_hora)
+    })
+
+    setAgendamentos(sortedAgendamentos)
 
     if (podeGerenciar) {
       const { data: prop } = await supabase

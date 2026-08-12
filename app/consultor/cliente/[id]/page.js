@@ -92,6 +92,13 @@ const [propostas, setPropostas] = useState([])
 
       setPerfil(perfilData)
 
+      try {
+        const recent = JSON.parse(localStorage.getItem('recent_clients_consultor') || '[]')
+        const filteredRecent = recent.filter(item => (typeof item === 'object' ? item.id : item) !== clienteId)
+        const updatedRecent = [{ id: clienteId, timestamp: new Date().toISOString() }, ...filteredRecent].slice(0, 50)
+        localStorage.setItem('recent_clients_consultor', JSON.stringify(updatedRecent))
+      } catch (e) {}
+
       const [rFin, rUso, rPref, rPrio] = await Promise.all([
         supabase.from('clientes_financeiro').select('*').eq('cliente_id', clienteId).maybeSingle(),
         supabase.from('clientes_uso').select('*').eq('cliente_id', clienteId).maybeSingle(),

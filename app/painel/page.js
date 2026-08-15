@@ -98,6 +98,25 @@ export default function Painel() {
   async function reagirProposta(id, novoStatus) {
     await supabase.from('propostas').update({ status: novoStatus }).eq('id', id)
     setPropostas(propostas.map((p) => (p.id === id ? { ...p, status: novoStatus } : p)))
+
+    if (novoStatus === 'aceita') {
+      const proposta = propostas.find((p) => p.id === id)
+      if (proposta) {
+        const precoAnunciado = proposta.origem === 'estoque' ? proposta.veiculos?.preco : proposta.preco_externa
+        const precoNegociado = proposta.preco_negociado || precoAnunciado
+
+        if (precoAnunciado && precoNegociado && Number(precoAnunciado) > Number(precoNegociado)) {
+          // Generate economy record
+          await supabase.from('economia_gerada').insert([{
+            consultor_id: perfil.consultor_id,
+            cliente_id: perfil.id,
+            proposta_id: proposta.id,
+            preco_anunciado: Number(precoAnunciado),
+            preco_negociado: Number(precoNegociado)
+          }])
+        }
+      }
+    }
   }
 
   if (carregando) {

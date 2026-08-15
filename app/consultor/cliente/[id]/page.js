@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
 import { calcularCompatibilidade } from '../../../lib/compatibilidade'
@@ -12,6 +12,7 @@ import ChatConsultor from '../../../components/ChatConsultor'
 import { useCallback } from 'react'
 import Contratos from '../../../components/Contratos'
 import ChatFlutuante from '../../../components/ChatFlutuante'
+import LaudosConsultor from '../../../components/LaudosConsultor'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'],
@@ -48,6 +49,7 @@ const [propostas, setPropostas] = useState([])
   const [mostrarFormProposta, setMostrarFormProposta] = useState(false)
   const [origemProposta, setOrigemProposta] = useState('estoque')
   const [veiculoEscolhido, setVeiculoEscolhido] = useState('')
+  const [precoNegociadoEstoque, setPrecoNegociadoEstoque] = useState('')
   const [propostaExterna, setPropostaExterna] = useState({
     marca_externa: '', modelo_externa: '', ano_externa: '', preco_externa: '', observacao_externa: '', link_externo: '',
   })
@@ -195,6 +197,7 @@ async function carregarPropostas() {
       ? {
           cliente_id: clienteId,
           veiculo_id: veiculoEscolhido,
+          preco_negociado: precoNegociadoEstoque ? Number(precoNegociadoEstoque) : null,
           origem: 'estoque',
           criado_por: authId,
         }
@@ -217,8 +220,11 @@ async function carregarPropostas() {
     if (!error) {
       setMostrarFormProposta(false)
       setVeiculoEscolhido('')
+      setPrecoNegociadoEstoque('')
       setPropostaExterna({ marca_externa: '', modelo_externa: '', ano_externa: '', preco_externa: '', observacao_externa: '', link_externo: '' })
       carregarPropostas()
+    } else {
+      alert('Erro ao apresentar proposta: ' + error.message)
     }
   }
 
@@ -226,6 +232,123 @@ async function carregarPropostas() {
     if (!confirm('Remover esta proposta?')) return
     await supabase.from('propostas').delete().eq('id', id)
     carregarPropostas()
+  }
+
+  function exportarTXT() {
+    if (!perfil) return
+
+    const fmt = (v) => {
+      if (v === null || v === undefined || v === '') return '—'
+      return String(v)
+    }
+    const fmtMoeda = (v) => {
+      if (!v) return '—'
+      const n = Number(v)
+      if (isNaN(n)) return fmt(v)
+      return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+    }
+    const fmtData = (d) => {
+      if (!d) return '—'
+      const [ano, mes, dia] = d.split('-')
+      return `${dia}/${mes}/${ano}`
+    }
+
+    let c = `════════════════════════════════════════════════════════\n`
+    c += `  DOSSIÊ COMPLETO DO CLIENTE\n`
+    c += `  ${perfil.nome}\n`
+    c += `  Gerado em: ${new Date().toLocaleString('pt-BR')}\n`
+    c += `════════════════════════════════════════════════════════\n\n`
+
+    // --- DADOS PESSOAIS ---
+    c += `── DADOS PESSOAIS ─────────────────────────────────────\n`
+    c += `  Nome completo:      ${fmt(perfil.nome)}\n`
+    c += `  CPF:                ${fmt(perfil.cpf)}\n`
+    c += `  Data de nascimento: ${fmtData(perfil.data_nascimento)}\n`
+    c += `  E-mail:             ${fmt(perfil.email)}\n`
+    c += `  Telefone:           ${fmt(perfil.telefone)}\n`
+    c += `  Estado civil:       ${fmt(perfil.estado_civil)}\n`
+    c += `  Profissão:          ${fmt(perfil.profissao)}\n`
+    c += `  Local de trabalho:  ${fmt(perfil.empresa)}\n`
+    c += `  Cidade / UF:        ${perfil.cidade && perfil.estado ? `${perfil.cidade} / ${perfil.estado}` : '—'}\n`
+    c += `  Cliente desde:      ${perfil.created_at ? new Date(perfil.created_at).toLocaleDateString('pt-BR') : '—'}\n`
+    c += `\n`
+
+    // --- DADOS FINANCEIROS ---
+    if (financeiro) {
+      c += `── DADOS FINANCEIROS ──────────────────────────────────\n`
+      c += `  Renda mensal:       ${fmtMoeda(financeiro.renda_mensal)}\n`
+      c += `  Renda familiar:     ${fmtMoeda(financeiro.renda_familiar)}\n`
+      c += `  Entrada:            ${fmtMoeda(financeiro.entrada)}\n`
+      c += `  Parcela máxima:     ${fmtMoeda(financeiro.parcela_maxima)}\n`
+      c += `  Prazo máximo:       ${financeiro.prazo_meses ? `${financeiro.prazo_meses} meses` : '—'}\n`
+      c += `  Forma de pagamento: ${fmt(financeiro.forma_pagamento)}\n`
+      c += `  Veículo para troca: ${financeiro.tem_veiculo_troca ? `Sim — ${fmtMoeda(financeiro.valor_veiculo_troca) || 'valor não informado'}` : 'Não'}\n`
+      c += `  Restrição no nome:  ${financeiro.tem_restricao ? 'Sim' : 'Não'}\n`
+      c += `  Banco preferência:  ${fmt(financeiro.banco_preferencia)}\n`
+      c += `  Autoriza análise:   ${financeiro.autoriza_analise_financiamento ? '✓ Sim, autorizado' : 'Não autorizado'}\n`
+      c += `\n`
+    }
+
+    // --- PERFIL DE USO ---
+    if (uso) {
+      c += `── PERFIL DE USO ──────────────────────────────────────\n`
+      c += `  Uso principal:        ${fmt(uso.uso_principal)}\n`
+      c += `  Pessoas no carro:     ${fmt(uso.pessoas_no_carro)}\n`
+      c += `  Percurso diário:      ${fmt(uso.percurso_diario)}\n`
+      c += `  Frequência de viagens: ${fmt(uso.frequencia_viagens)}\n`
+      c += `\n`
+    }
+
+    // --- PREFERÊNCIAS DO VEÍCULO ---
+    if (preferencias) {
+      c += `── PREFERÊNCIAS DO VEÍCULO ────────────────────────────\n`
+      c += `  Categoria:           ${fmt(preferencias.categoria)}\n`
+      const faixaPreco = preferencias.preco_min && preferencias.preco_max
+        ? `${fmtMoeda(preferencias.preco_min)} — ${fmtMoeda(preferencias.preco_max)}`
+        : preferencias.preco_min ? `A partir de ${fmtMoeda(preferencias.preco_min)}`
+        : preferencias.preco_max ? `Até ${fmtMoeda(preferencias.preco_max)}` : '—'
+      c += `  Faixa de preço:      ${faixaPreco}\n`
+      const faixaAno = preferencias.ano_min && preferencias.ano_max
+        ? `${preferencias.ano_min} — ${preferencias.ano_max}`
+        : preferencias.ano_min ? `A partir de ${preferencias.ano_min}`
+        : preferencias.ano_max ? `Até ${preferencias.ano_max}` : '—'
+      c += `  Faixa de ano:        ${faixaAno}\n`
+      c += `  Km máxima:           ${preferencias.km_maxima ? `${preferencias.km_maxima} km` : '—'}\n`
+      c += `  Transmissão:         ${fmt(preferencias.cambio)}\n`
+      c += `  Cor desejada:        ${fmt(preferencias.cor)}\n`
+      c += `  Marcas preferidas:   ${fmt(preferencias.marcas_preferidas)}\n`
+      c += `  Marcas recusadas:    ${fmt(preferencias.marcas_recusadas)}\n`
+      c += `\n`
+    }
+
+    // --- PRIORIDADES ---
+    if (prioridades) {
+      c += `── PRIORIDADES DO CLIENTE ─────────────────────────────\n`
+      const LABELS = [
+        ['economia', 'Economia'], ['conforto', 'Conforto'], ['tecnologia', 'Tecnologia'],
+        ['espaco', 'Espaço'], ['potencia', 'Potência'], ['seguranca', 'Segurança'],
+        ['baixa_manutencao', 'Baixa manutenção'], ['revenda_facil', 'Revenda fácil'],
+        ['design', 'Design'], ['status', 'Status'],
+      ]
+      LABELS.forEach(([campo, label]) => {
+        const val = prioridades[campo] ?? '—'
+        const barra = typeof val === 'number' ? '█'.repeat(val) + '░'.repeat(10 - val) : ''
+        c += `  ${label.padEnd(20)} ${barra} ${val}/10\n`
+      })
+      c += `\n`
+    }
+
+    c += `════════════════════════════════════════════════════════\n`
+    c += `  Documento gerado automaticamente pelo CarWise\n`
+    c += `════════════════════════════════════════════════════════\n`
+
+    const blob = new Blob([c], { type: 'text/plain;charset=utf-8' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `cliente_${perfil.nome.replace(/\s+/g, '_')}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   if (carregando) {
@@ -248,20 +371,40 @@ async function carregarPropostas() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-50">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-3xl mx-auto px-6 py-4">
-          <a href="/consultor/painel" className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-600 font-medium">
-            ← Voltar para a lista de clientes
+    <div className="p-4 lg:p-8">
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-4">
+          <a href="/consultor/clientes" className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-blue-600 font-medium transition">
+            ← Voltar para a lista
           </a>
         </div>
-      </header>
 
-      <div className="max-w-3xl mx-auto px-6 py-10">
-
-        <div className="bg-white rounded-2xl shadow-lg p-8 md:p-10 mb-5">
-          <h1 className="text-2xl font-bold text-blue-900 mb-1">{perfil?.nome}</h1>
-          <p className="text-gray-500 text-sm">Cliente desde {new Date(perfil.created_at).toLocaleDateString('pt-BR')}</p>
+        <div className="bg-white rounded-2xl shadow-lg p-8 md:p-10 mb-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <h1 className="text-2xl font-bold text-blue-900 mb-1">{perfil?.nome}</h1>
+            <p className="text-gray-500 text-sm">Cliente desde {new Date(perfil.created_at).toLocaleDateString('pt-BR')}</p>
+          </div>
+          
+          <div className="flex flex-row flex-wrap gap-2 mt-4 md:mt-0">
+            <button
+              onClick={() => router.push(`/consultor/cliente/${clienteId}/dados`)}
+              className="bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold px-3 py-2 rounded-lg transition"
+            >
+              Ver dados completos
+            </button>
+            <button
+              onClick={exportarTXT}
+              className="bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 text-xs font-semibold px-3 py-2 rounded-lg transition"
+            >
+              Exportar dados (.txt)
+            </button>
+            <button
+              onClick={() => router.push(`/consultor/catalogo?clienteId=${clienteId}`)}
+              className="bg-blue-600 text-white hover:bg-blue-700 text-xs font-semibold px-3 py-2 rounded-lg transition shadow-sm"
+            >
+              Comparar no catálogo
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
@@ -289,8 +432,9 @@ async function carregarPropostas() {
             <h2 className="font-semibold text-blue-950 text-lg mb-1">Ranking de compatibilidade</h2>
             <p className="text-xs text-gray-400 mb-6">Veículos do estoque comparados ao perfil deste cliente, do mais ao menos compatível.</p>
 
-            <div className="space-y-4">
-              {ranking.slice(0, qtdVisivel).map((item, i) => (
+            <SecaoExpansivel maxHeight="540px">
+              <div className="space-y-4">
+                {ranking.map((item, i) => (
                 <div key={item.veiculo.id} className="border border-gray-100 rounded-xl p-5">
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -342,16 +486,9 @@ async function carregarPropostas() {
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
-            {ranking.length > qtdVisivel && (
-              <button
-                onClick={() => setQtdVisivel(qtdVisivel + 4)}
-                className="text-sm font-semibold text-blue-600 hover:text-blue-800 mt-4"
-              >
-                Ver mais {Math.min(4, ranking.length - qtdVisivel)} veículo{ranking.length - qtdVisivel > 1 ? 's' : ''} →
-              </button>
-            )}
+                ))}
+              </div>
+            </SecaoExpansivel>
           </div>
         )}
 
@@ -392,19 +529,30 @@ async function carregarPropostas() {
               </div>
 
               {origemProposta === 'estoque' ? (
-                <select
-                  value={veiculoEscolhido}
-                  onChange={(e) => setVeiculoEscolhido(e.target.value)}
-                  required
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white"
-                >
-                  <option value="">Selecione um veículo do estoque</option>
-                  {veiculosEstoque.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.marca} {v.modelo} {v.versao} — {v.ano_fabricacao}/{v.ano_modelo} — {v.concessionarias?.nome_fantasia}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-3">
+                  <select
+                    value={veiculoEscolhido}
+                    onChange={(e) => setVeiculoEscolhido(e.target.value)}
+                    required
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white"
+                  >
+                    <option value="">Selecione um veículo do estoque</option>
+                    {veiculosEstoque.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.marca} {v.modelo} {v.versao} — {v.ano_fabricacao}/{v.ano_modelo} — {Number(v.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })} — {v.concessionarias?.nome_fantasia}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Preço alcançado na negociação (R$)"
+                    required
+                    value={precoNegociadoEstoque}
+                    onChange={(e) => setPrecoNegociadoEstoque(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400"
+                  />
+                </div>
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-3">
@@ -426,18 +574,24 @@ async function carregarPropostas() {
             </form>
           )}
 
-          <div className="space-y-3">
-            {propostas.map((p) => {
+          <SecaoExpansivel maxHeight="320px">
+            <div className="space-y-3">
+              {propostas.map((p) => {
               const dados = p.origem === 'estoque'
-                ? { marca: p.veiculos?.marca, modelo: p.veiculos?.modelo, versao: p.veiculos?.versao, ano: `${p.veiculos?.ano_fabricacao}/${p.veiculos?.ano_modelo}`, preco: p.veiculos?.preco, fonte: p.veiculos?.concessionarias?.nome_fantasia }
-                : { marca: p.marca_externa, modelo: p.modelo_externa, versao: '', ano: p.ano_externa, preco: p.preco_externa, fonte: 'Encontrado por fora' }
+                ? { marca: p.veiculos?.marca, modelo: p.veiculos?.modelo, versao: p.veiculos?.versao, ano: `${p.veiculos?.ano_fabricacao}/${p.veiculos?.ano_modelo}`, preco: p.veiculos?.preco, preco_negociado: p.preco_negociado, fonte: p.veiculos?.concessionarias?.nome_fantasia }
+                : { marca: p.marca_externa, modelo: p.modelo_externa, versao: '', ano: p.ano_externa, preco: p.preco_externa, preco_negociado: null, fonte: 'Encontrado por fora' }
 
               return (
                 <div key={p.id} className="border border-gray-100 rounded-xl p-4 flex justify-between items-start">
                   <div>
                     <p className="text-sm font-semibold text-blue-950">{dados.marca} {dados.modelo} {dados.versao}</p>
                     <p className="text-xs text-gray-400">{dados.ano} · {dados.fonte}</p>
-                    {dados.preco && <p className="text-sm text-gray-600 mt-1">{Number(dados.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>}
+                    
+                    <div className="mt-1 flex items-center gap-2">
+                      {dados.preco && <p className={`text-sm ${dados.preco_negociado ? 'text-gray-400 line-through text-xs' : 'text-gray-600'}`}>{Number(dados.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>}
+                      {dados.preco_negociado && <p className="text-sm text-green-600 font-bold">{Number(dados.preco_negociado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>}
+                    </div>
+
                     <span className={`inline-block text-xs font-mono px-2 py-0.5 rounded-full mt-2 ${
                       p.status === 'aceita' ? 'bg-green-50 text-green-600' : p.status === 'recusada' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
                     }`}>
@@ -449,12 +603,15 @@ async function carregarPropostas() {
               )
             })}
             {propostas.length === 0 && <p className="text-gray-400 text-sm">Nenhuma proposta apresentada ainda.</p>}
-          </div>
+            </div>
+          </SecaoExpansivel>
         </div>
 
 	<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
           <h2 className="font-semibold text-blue-950 text-lg mb-5">Test drive</h2>
-          <Agendamentos clienteId={clienteId} autorTipo="consultor" podeGerenciar={true} />
+          <SecaoExpansivel maxHeight="260px">
+            <Agendamentos clienteId={clienteId} autorTipo="consultor" podeGerenciar={true} />
+          </SecaoExpansivel>
         </div>
 
 	<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
@@ -469,83 +626,20 @@ async function carregarPropostas() {
   </div>
 )}
 
+{perfil && (
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
+    <LaudosConsultor clienteId={perfil.id} />
+  </div>
+)}
+
 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
   <h2 className="font-semibold text-blue-950 text-lg mb-5">Histórico da negociação</h2>
-  <HistoricoNegociacao clienteId={perfil.id} podeAdicionar={true} />
+  <SecaoExpansivel maxHeight="260px">
+    <HistoricoNegociacao clienteId={perfil.id} podeAdicionar={true} />
+  </SecaoExpansivel>
 </div>
 
-        {perfil && (
-          <Secao titulo="Dados pessoais">
-            <InfoRow label="Nome completo" value={perfil.nome} />
-            <InfoRow label="CPF" value={perfil.cpf} />
-            <InfoRow label="Data de nascimento" value={formatarData(perfil.data_nascimento)} />
-            <InfoRow label="E-mail" value={perfil.email} />
-            <InfoRow label="Telefone" value={perfil.telefone} />
-            <InfoRow label="Estado civil" value={perfil.estado_civil} />
-            <InfoRow label="Profissão" value={perfil.profissao} />
-            <InfoRow label="Local de trabalho" value={perfil.empresa} />
-            <InfoRow label="Cidade / UF" value={perfil.cidade && perfil.estado ? `${perfil.cidade} / ${perfil.estado}` : null} />
-          </Secao>
-        )}
-
-        {financeiro && (
-          <Secao titulo="Dados financeiros">
-            <InfoRow label="Média de renda mensal" value={formatarMoeda(financeiro.renda_mensal)} />
-            <InfoRow label="Renda familiar" value={formatarMoeda(financeiro.renda_familiar)} />
-            <InfoRow label="Entrada" value={formatarMoeda(financeiro.entrada)} />
-            <InfoRow label="Parcela máxima" value={formatarMoeda(financeiro.parcela_maxima)} />
-            <InfoRow label="Prazo máximo" value={financeiro.prazo_meses ? `${financeiro.prazo_meses} meses` : null} />
-            <InfoRow label="Forma de pagamento" value={financeiro.forma_pagamento} />
-            <InfoRow label="Veículo para troca" value={financeiro.tem_veiculo_troca ? `Sim — ${formatarMoeda(financeiro.valor_veiculo_troca) || 'valor não informado'}` : 'Não'} />
-            <InfoRow label="Restrição no nome" value={financeiro.tem_restricao ? 'Sim' : 'Não'} />
-            <InfoRow label="Banco de preferência" value={financeiro.banco_preferencia} />
-	    <InfoRow label="Autoriza análise de financiamento" value={financeiro.autoriza_analise_financiamento ? '✓ Sim, autorizado' : 'Não autorizado'} />
-          </Secao>
-        )}
-
-        {uso && (
-          <Secao titulo="Perfil de uso">
-            <InfoRow label="Uso principal" value={uso.uso_principal} />
-            <InfoRow label="Pessoas no carro" value={uso.pessoas_no_carro} />
-            <InfoRow label="Percurso diário" value={uso.percurso_diario} />
-            <InfoRow label="Frequência de viagens" value={uso.frequencia_viagens} />
-          </Secao>
-        )}
-
-        {preferencias && (
-          <Secao titulo="Preferências do veículo">
-            <InfoRow label="Categoria" value={preferencias.categoria} />
-            <InfoRow label="Faixa de preço" value={formatarFaixa(preferencias.preco_min, preferencias.preco_max, formatarMoeda)} />
-            <InfoRow label="Faixa de ano" value={formatarFaixa(preferencias.ano_min, preferencias.ano_max)} />
-            <InfoRow label="Quilometragem máxima" value={preferencias.km_maxima ? `${preferencias.km_maxima} km` : null} />
-            <InfoRow label="Transmissão" value={preferencias.cambio} />
-            <InfoRow label="Cor desejada" value={preferencias.cor} />
-            <InfoRow label="Marcas preferidas" value={preferencias.marcas_preferidas} />
-            <InfoRow label="Marcas que não aceita" value={preferencias.marcas_recusadas} />
-          </Secao>
-        )}
-
-        {prioridades && (
-          <Secao titulo="O que é mais importante para o cliente">
-            <div className="space-y-3">
-              {PRIORIDADES_LABELS.map(([campo, label]) => (
-                <div key={campo} className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600 w-40 shrink-0">{label}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-blue-600 h-full rounded-full"
-                      style={{ width: `${(prioridades[campo] / 10) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-mono text-blue-700 w-6 text-right">{prioridades[campo]}</span>
-                </div>
-              ))}
-            </div>
-          </Secao>
-        )}
-
 </div>
-
       {consultorLogado && (
         <ChatFlutuante
           clienteId={clienteId}
@@ -598,4 +692,65 @@ function formatarFaixa(min, max, formatador) {
   if (min && max) return `${f(min)} — ${f(max)}`
   if (min) return `A partir de ${f(min)}`
   return `Até ${f(max)}`
+}
+
+function SecaoExpansivel({ children, maxHeight = '220px' }) {
+  const [expandido, setExpandido] = useState(false)
+  const [precisaExpandir, setPrecisaExpandir] = useState(false)
+  const innerRef = useRef(null)
+
+  useEffect(() => {
+    const el = innerRef.current
+    if (!el) return
+
+    const observer = new ResizeObserver(() => {
+      const maxH = parseInt(maxHeight.replace('px', ''))
+      if (el.scrollHeight > maxH) {
+        setPrecisaExpandir(true)
+      } else {
+        setPrecisaExpandir(false)
+      }
+    })
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [maxHeight])
+
+  return (
+    <div className="relative">
+      <div
+        className={`transition-all duration-300 overflow-hidden ${
+          expandido || !precisaExpandir ? '' : ''
+        }`}
+        style={{
+          maxHeight: expandido || !precisaExpandir ? 'none' : maxHeight,
+          ...( !expandido && precisaExpandir ? { maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)' } : {} )
+        }}
+      >
+        <div ref={innerRef}>
+          {children}
+        </div>
+      </div>
+      {!expandido && precisaExpandir && (
+        <div className="absolute bottom-0 left-0 right-0 flex justify-center items-end pb-0 pointer-events-none">
+          <button
+            onClick={() => setExpandido(true)}
+            className="pointer-events-auto text-sm font-semibold text-blue-600 hover:text-blue-800 transition bg-white/90 backdrop-blur border border-blue-100 shadow-sm px-5 py-2 rounded-full translate-y-1/2"
+          >
+            Ver mais
+          </button>
+        </div>
+      )}
+      {expandido && precisaExpandir && (
+        <div className="mt-4 pb-2 text-center">
+          <button
+            onClick={() => setExpandido(false)}
+            className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition bg-blue-50 px-4 py-1.5 rounded-full"
+          >
+            Ver menos
+          </button>
+        </div>
+      )}
+    </div>
+  )
 }

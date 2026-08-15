@@ -1,0 +1,1 @@
+ALTER TABLE propostas ADD COLUMN IF NOT EXISTS preco_negociado NUMERIC(12,2);

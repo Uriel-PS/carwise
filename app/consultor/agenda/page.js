@@ -91,25 +91,9 @@ export default function AgendaConsultor() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <a href="/" className="flex items-center gap-2 font-[family-name:var(--font-display)] font-extrabold text-lg text-blue-950 hover:text-blue-700 transition">
-              <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-              CarWise
-            </a>
-            <span className="text-[11px] font-mono font-medium text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">Consultor</span>
-          </div>
-          <a href="/consultor/painel" className="text-sm font-semibold text-gray-500 hover:text-blue-600 transition">
-            ← Voltar aos clientes
-          </a>
-        </div>
-      </header>
-
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="font-[family-name:var(--font-display)] font-bold text-2xl text-blue-950 mb-1">Minha agenda</h1>
-        <p className="text-gray-400 text-sm mb-6">Test drives dos seus clientes, organizados por data</p>
+    <div className="p-4 lg:p-8 max-w-[900px] mx-auto">
+        <h1 className="font-bold text-2xl text-slate-900 mb-1">Minha Agenda</h1>
+        <p className="text-slate-400 text-sm mb-6">Test drives dos seus clientes, organizados por data</p>
 
         <div className="flex gap-2 mb-6 flex-wrap">
           {['ativos', 'solicitado', 'confirmado', 'concluido', 'cancelado', 'todos'].map((f) => (
@@ -177,6 +161,5 @@ export default function AgendaConsultor() {
           ))
         )}
       </div>
-    </div>
   )
 }

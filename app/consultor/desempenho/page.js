@@ -185,21 +185,32 @@ export default function DesempenhoConsultor() {
 
   // Vehicle values
   const valoresVeiculos = propostas.filter(p => p.status === 'aceita').map(p => {
-    const preco = p.origem === 'estoque' ? p.veiculos?.preco : p.preco_externa
+    const precoBase = p.origem === 'estoque' ? p.veiculos?.preco : p.preco_externa
+    const preco = p.preco_negociado || precoBase
     return Number(preco) || 0
   }).filter(v => v > 0)
   const valorMedioVeiculo = valoresVeiculos.length > 0
     ? valoresVeiculos.reduce((a, b) => a + b, 0) / valoresVeiculos.length
     : 0
 
-  // Economy
-  const economiaTotal = economia.reduce((s, e) => s + Number(e.preco_anunciado || 0) - Number(e.preco_negociado || 0), 0)
-  const descontoMedio = economia.length > 0
-    ? economia.reduce((s, e) => {
-        const anunciado = Number(e.preco_anunciado || 0)
-        const negociado = Number(e.preco_negociado || 0)
-        return anunciado > 0 ? s + ((anunciado - negociado) / anunciado * 100) : s
-      }, 0) / economia.length
+  // Economy (calculated directly from accepted proposals to ensure accuracy)
+  const propostasComDesconto = propostas.filter(p => {
+    if (p.status !== 'aceita') return false
+    const precoAnunciado = p.origem === 'estoque' ? p.veiculos?.preco : p.preco_externa
+    return precoAnunciado && p.preco_negociado && Number(precoAnunciado) > Number(p.preco_negociado)
+  })
+
+  const economiaTotal = propostasComDesconto.reduce((s, p) => {
+    const precoAnunciado = p.origem === 'estoque' ? p.veiculos?.preco : p.preco_externa
+    return s + (Number(precoAnunciado) - Number(p.preco_negociado))
+  }, 0)
+
+  const descontoMedio = propostasComDesconto.length > 0
+    ? propostasComDesconto.reduce((s, p) => {
+        const anunciado = Number(p.origem === 'estoque' ? p.veiculos?.preco : p.preco_externa)
+        const negociado = Number(p.preco_negociado)
+        return s + ((anunciado - negociado) / anunciado * 100)
+      }, 0) / propostasComDesconto.length
     : 0
 
   // Meta

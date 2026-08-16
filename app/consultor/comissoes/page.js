@@ -85,12 +85,14 @@ export default function ComissoesConsultor() {
   const mesAtual = new Date().getMonth()
   const anoAtual = new Date().getFullYear()
 
-  const comissoesMes = comissoes.filter(c => {
+  const comissoesAtivas = comissoes.filter(c => c.status !== 'cancelada')
+
+  const comissoesMes = comissoesAtivas.filter(c => {
     const d = new Date(c.created_at)
     return d.getMonth() === mesAtual && d.getFullYear() === anoAtual
   })
 
-  const totalGeral = comissoes.reduce((s, c) => s + Number(c.valor || 0), 0)
+  const totalGeral = comissoesAtivas.reduce((s, c) => s + Number(c.valor || 0), 0)
   const totalPrevista = comissoes.filter(c => c.status === 'prevista').reduce((s, c) => s + Number(c.valor || 0), 0)
   const totalAprovada = comissoes.filter(c => c.status === 'aprovada').reduce((s, c) => s + Number(c.valor || 0), 0)
   const totalPaga = comissoes.filter(c => c.status === 'paga').reduce((s, c) => s + Number(c.valor || 0), 0)

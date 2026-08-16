@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
+import GaleriaVeiculo from '../../components/GaleriaVeiculo'
 
 export default function PainelConcessionaria() {
   const router = useRouter()
@@ -39,7 +40,7 @@ export default function PainelConcessionaria() {
 
     const { data: veiculosData, error: veiculosError } = await supabase
       .from('veiculos')
-      .select('*')
+      .select('*, veiculo_fotos(id, url, ordem)')
       .eq('concessionaria_id', concessionariaData.id)
       .order('created_at', { ascending: false })
 
@@ -64,7 +65,7 @@ export default function PainelConcessionaria() {
     setEditandoId(null)
     setForm({
       marca: '', modelo: '', versao: '', ano_fabricacao: '', ano_modelo: '',
-      cor: '', cambio: 'Automático', combustivel: 'Flex', categoria: 'Hatch', km: '', preco: '', preco_negociacao: '',
+      cor: '', cambio: 'Automático', combustivel: 'Flex', categoria: 'Hatch', km: '', preco: '', preco_negociacao: '', fotos: []
     })
     setErroForm('')
     setMostrarForm(true)
@@ -78,6 +79,7 @@ export default function PainelConcessionaria() {
       cor: veiculo.cor || '', cambio: veiculo.cambio || 'Automático', combustivel: veiculo.combustivel || 'Flex',
       categoria: veiculo.categoria || 'Hatch',
       km: veiculo.km || '', preco: veiculo.preco || '', preco_negociacao: veiculo.preco_negociacao || '',
+      fotos: (veiculo.veiculo_fotos || []).sort((a, b) => a.ordem - b.ordem).map(f => ({ url: f.url }))
     })
     setErroForm('')
     setMostrarForm(true)
@@ -104,19 +106,41 @@ export default function PainelConcessionaria() {
     }
 
     const resultado = editandoId
-      ? await supabase.from('veiculos').update(dados).eq('id', editandoId)
-      : await supabase.from('veiculos').insert([{ ...dados, concessionaria_id: concessionaria.id, status: 'ativo' }])
-
-    setSalvando(false)
+      ? await supabase.from('veiculos').update(dados).eq('id', editandoId).select()
+      : await supabase.from('veiculos').insert([{ ...dados, concessionaria_id: concessionaria.id, status: 'ativo' }]).select()
 
     if (resultado.error) {
+      setSalvando(false)
       setErroForm(resultado.error.message)
       return
     }
 
+    const veiculoId = resultado.data[0].id
+
+    // Save photos
+    if (form.fotos && form.fotos.length > 0) {
+      // Delete existing photos if editing to sync new state
+      if (editandoId) {
+        await supabase.from('veiculo_fotos').delete().eq('veiculo_id', veiculoId)
+      }
+      
+      const fotosParaInserir = form.fotos.map((f, i) => ({
+        veiculo_id: veiculoId,
+        url: f.url,
+        ordem: i
+      }))
+      
+      await supabase.from('veiculo_fotos').insert(fotosParaInserir)
+    } else if (editandoId) {
+       // If no photos and editing, clear all photos
+       await supabase.from('veiculo_fotos').delete().eq('veiculo_id', veiculoId)
+    }
+
+    setSalvando(false)
+
     setForm({
       marca: '', modelo: '', versao: '', ano_fabricacao: '', ano_modelo: '',
-      cor: '', cambio: 'Automático', combustivel: 'Flex', categoria: 'Hatch', km: '', preco: '', preco_negociacao: '',
+      cor: '', cambio: 'Automático', combustivel: 'Flex', categoria: 'Hatch', km: '', preco: '', preco_negociacao: '', fotos: []
     })
     setEditandoId(null)
     setMostrarForm(false)
@@ -127,6 +151,52 @@ export default function PainelConcessionaria() {
     if (!confirm('Remover este veículo do estoque?')) return
     await supabase.from('veiculos').delete().eq('id', id)
     carregarTudo()
+  }
+
+  const [uploadingFoto, setUploadingFoto] = useState(false)
+  
+  async function handleUploadFoto(e) {
+    if (!e.target.files || e.target.files.length === 0) return
+    if (form.fotos.length >= 4) {
+      setErroForm('Máximo de 4 fotos atingido.')
+      return
+    }
+
+    setUploadingFoto(true)
+    setErroForm('')
+
+    const file = e.target.files[0]
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await fetch('/api/upload-foto', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Erro no upload')
+
+      setForm({
+        ...form,
+        fotos: [...form.fotos, { url: data.url }]
+      })
+    } catch (err) {
+      setErroForm(err.message)
+    } finally {
+      setUploadingFoto(false)
+      // clear input
+      e.target.value = ''
+    }
+  }
+
+  function removerFoto(index) {
+    setForm({
+      ...form,
+      fotos: form.fotos.filter((_, i) => i !== index)
+    })
   }
 
   if (carregando) {
@@ -212,7 +282,40 @@ export default function PainelConcessionaria() {
 
             {erroForm && <p className="text-red-600 text-xs">{erroForm}</p>}
 
-            <button type="submit" disabled={salvando} className="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-2">Fotos do veículo (Máx 4)</label>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                {form.fotos.map((f, i) => (
+                  <div key={i} className="relative aspect-video rounded-lg overflow-hidden border border-gray-200 group bg-gray-50 flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={f.url} alt={`Foto ${i+1}`} className="object-cover w-full h-full" />
+                    <button type="button" onClick={() => removerFoto(i)} className="absolute top-1 right-1 bg-white/90 text-red-500 rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-white transition opacity-0 group-hover:opacity-100">
+                      ×
+                    </button>
+                    <div className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 rounded">
+                      {i === 0 ? 'Capa' : `Foto ${i+1}`}
+                    </div>
+                  </div>
+                ))}
+                
+                {form.fotos.length < 4 && (
+                  <label className={`relative aspect-video rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition ${uploadingFoto ? 'border-blue-300 bg-blue-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/50'}`}>
+                    <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp" onChange={handleUploadFoto} disabled={uploadingFoto} />
+                    {uploadingFoto ? (
+                      <span className="text-xs text-blue-500 font-medium animate-pulse">Enviando...</span>
+                    ) : (
+                      <>
+                        <span className="text-xl text-gray-400 mb-1">+</span>
+                        <span className="text-xs text-gray-500 font-medium">Adicionar foto</span>
+                      </>
+                    )}
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <button type="submit" disabled={salvando || uploadingFoto} className="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
               {salvando ? 'Salvando...' : editandoId ? 'Salvar alterações' : 'Adicionar ao estoque'}
             </button>
           </form>
@@ -220,31 +323,38 @@ export default function PainelConcessionaria() {
 
         <div className="grid md:grid-cols-2 gap-4">
           {veiculos.map((v) => (
-            <div key={v.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h4 className="font-[family-name:var(--font-display)] font-semibold text-blue-950 text-lg">{v.marca} {v.modelo} {v.versao}</h4>
-                  <p className="text-xs text-gray-400 mt-0.5">{v.ano_fabricacao}/{v.ano_modelo} · {v.km ? `${v.km} km` : '—'} · {v.cor}</p>
+            <div key={v.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition flex flex-col md:flex-row gap-4">
+              {v.veiculo_fotos && v.veiculo_fotos.length > 0 && (
+                <div className="w-full md:w-1/3 aspect-video md:aspect-square shrink-0">
+                  <GaleriaVeiculo fotos={v.veiculo_fotos} />
                 </div>
-                <span className={`text-xs font-mono px-2.5 py-1 rounded-full shrink-0 ${v.status === 'ativo' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                  {v.status}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-                <span className="bg-gray-50 px-2 py-1 rounded-md">{v.categoria || 'Sem categoria'}</span>
-                <span className="bg-gray-50 px-2 py-1 rounded-md">{v.cambio}</span>
-                <span className="bg-gray-50 px-2 py-1 rounded-md">{v.combustivel}</span>
-              </div>
-              <div className="font-[family-name:var(--font-display)] text-xl font-bold text-blue-950 mb-4">
-                {v.preco ? Number(v.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : '—'}
-              </div>
-              <div className="flex gap-4">
-                <button onClick={() => abrirEdicao(v)} className="text-xs font-semibold text-blue-600 hover:text-blue-800">
-                  Editar
-                </button>
-                <button onClick={() => removerVeiculo(v.id)} className="text-xs font-semibold text-red-500 hover:text-red-700">
-                  Remover
-                </button>
+              )}
+              <div className="flex-1">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="font-[family-name:var(--font-display)] font-semibold text-blue-950 text-lg">{v.marca} {v.modelo} {v.versao}</h4>
+                    <p className="text-xs text-gray-400 mt-0.5">{v.ano_fabricacao}/{v.ano_modelo} · {v.km ? `${v.km} km` : '—'} · {v.cor}</p>
+                  </div>
+                  <span className={`text-xs font-mono px-2.5 py-1 rounded-full shrink-0 ${v.status === 'ativo' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                    {v.status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                  <span className="bg-gray-50 px-2 py-1 rounded-md">{v.categoria || 'Sem categoria'}</span>
+                  <span className="bg-gray-50 px-2 py-1 rounded-md">{v.cambio}</span>
+                  <span className="bg-gray-50 px-2 py-1 rounded-md">{v.combustivel}</span>
+                </div>
+                <div className="font-[family-name:var(--font-display)] text-xl font-bold text-blue-950 mb-4">
+                  {v.preco ? Number(v.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : '—'}
+                </div>
+                <div className="flex gap-4">
+                  <button onClick={() => abrirEdicao(v)} className="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                    Editar
+                  </button>
+                  <button onClick={() => removerVeiculo(v.id)} className="text-xs font-semibold text-red-500 hover:text-red-700">
+                    Remover
+                  </button>
+                </div>
               </div>
             </div>
           ))}

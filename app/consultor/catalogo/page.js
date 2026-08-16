@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
+import GaleriaVeiculo from '../../components/GaleriaVeiculo'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'],
@@ -52,7 +53,8 @@ export default function CatalogoConsultor() {
         .select(`
           id, marca, modelo, versao, ano_fabricacao, ano_modelo, cor, cambio,
           combustivel, categoria, km, preco, preco_negociacao, status,
-          concessionarias ( nome_fantasia, cidade, estado, telefone )
+          concessionarias ( nome_fantasia, cidade, estado, telefone ),
+          veiculo_fotos (id, url, ordem)
         `)
         .order('created_at', { ascending: false })
 
@@ -276,7 +278,12 @@ export default function CatalogoConsultor() {
         {/* Grid de veículos */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {veiculosFiltrados.map((v) => (
-            <div key={v.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+            <div key={v.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col">
+              {v.veiculo_fotos && v.veiculo_fotos.length > 0 && (
+                <div className="mb-4">
+                  <GaleriaVeiculo fotos={v.veiculo_fotos} />
+                </div>
+              )}
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-semibold text-blue-950">{v.marca} {v.modelo} {v.versao}</h3>
                 <span className={`text-xs font-mono px-2 py-0.5 rounded-full shrink-0 ${v.status === 'ativo' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
@@ -301,7 +308,9 @@ export default function CatalogoConsultor() {
             </div>
           ))}
           {veiculosFiltrados.length === 0 && (
-            <div className="col-span-full text-center text-gray-400 text-sm py-14">Nenhum veículo encontrado com esses filtros.</div>
+            <div className="col-span-full text-center text-gray-400 py-10 bg-white rounded-2xl border border-gray-100">
+              Nenhum veículo encontrado com os filtros atuais.
+            </div>
           )}
         </div>
         </div>

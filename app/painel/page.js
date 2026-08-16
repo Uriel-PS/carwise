@@ -115,6 +115,44 @@ export default function Painel() {
             preco_negociado: Number(precoNegociado)
           }])
         }
+
+        // Automatic commission generation if client is already in a closing stage
+        const etapa = perfil.etapa_pipeline || perfil.etapa_atual
+        if (etapa === 'compra_concluida' || etapa === 'pos_venda') {
+          const valorVenda = Number(precoNegociado)
+          if (valorVenda > 0) {
+            const valorComissao = valorVenda * 0.01
+
+            // Check if it already exists to avoid duplicates
+            const { data: existente } = await supabase
+              .from('comissoes')
+              .select('id')
+              .eq('cliente_id', perfil.id)
+              .eq('proposta_id', proposta.id)
+              .maybeSingle()
+
+            if (!existente) {
+              await supabase.from('comissoes').insert([{
+                consultor_id: perfil.consultor_id,
+                cliente_id: perfil.id,
+                proposta_id: proposta.id,
+                valor: valorComissao,
+                percentual: 1.00,
+                valor_venda: valorVenda,
+                status: 'pendente',
+                observacao: `Gerada automaticamente após aceite do cliente na etapa ${etapa}.`
+              }])
+
+              await supabase.from('notificacoes_consultor').insert([{
+                consultor_id: perfil.consultor_id,
+                tipo: 'comissao',
+                titulo: 'Nova comissão gerada retroativamente!',
+                mensagem: `O cliente ${perfil.nome || 'seu cliente'} aceitou a proposta na etapa ${etapa} e a comissão foi gerada e está pendente de aprovação.`,
+                lida: false
+              }])
+            }
+          }
+        }
       }
     }
   }
@@ -192,15 +230,18 @@ export default function Painel() {
                 ) : (
                   <div className="space-y-4">
                     {propostas.map((p) => {
+                      const precoBase = p.origem === 'estoque' ? p.veiculos?.preco : p.preco_externa
+                      const precoExibir = p.preco_negociado || precoBase
+
                       const dados = p.origem === 'estoque'
                         ? {
                             marca: p.veiculos?.marca, modelo: p.veiculos?.modelo, versao: p.veiculos?.versao,
-                            ano: `${p.veiculos?.ano_fabricacao}/${p.veiculos?.ano_modelo}`, preco: p.veiculos?.preco,
+                            ano: `${p.veiculos?.ano_fabricacao}/${p.veiculos?.ano_modelo}`, preco: precoExibir, precoBase: precoBase,
                             fonte: p.veiculos?.concessionarias?.nome_fantasia,
                           }
                         : {
                             marca: p.marca_externa, modelo: p.modelo_externa, versao: '',
-                            ano: p.ano_externa, preco: p.preco_externa, fonte: 'Encontrado pelo seu consultor',
+                            ano: p.ano_externa, preco: precoExibir, precoBase: precoBase, fonte: 'Encontrado pelo seu consultor',
                           }
 
                       return (
@@ -211,9 +252,16 @@ export default function Painel() {
                               <p className="text-xs text-gray-400">{dados.ano} · {dados.fonte}</p>
                             </div>
                             {dados.preco && (
-                              <p className="text-gray-800 font-semibold">
-                                {Number(dados.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                {p.preco_negociado && dados.precoBase > p.preco_negociado && (
+                                  <span className="text-xs text-gray-400 line-through">
+                                    {Number(dados.precoBase).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                                  </span>
+                                )}
+                                <p className="text-gray-800 font-semibold">
+                                  {Number(dados.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                                </p>
+                              </div>
                             )}
                           </div>
 

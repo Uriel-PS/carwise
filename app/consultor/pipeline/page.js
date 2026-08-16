@@ -142,8 +142,8 @@ export default function PipelineConsultor() {
     }])
 
     // Automatic commission generation
-    if (novaEtapa === 'compra_concluida') {
-      const props = propostas.filter(p => p.cliente_id === cliente.id)
+    if (novaEtapa === 'compra_concluida' || novaEtapa === 'pos_venda') {
+      const props = propostas.filter(p => p.cliente_id === cliente.id && p.status === 'aceita')
       const proposta = props.length > 0 ? props[0] : null
       
       if (proposta) {
@@ -299,9 +299,10 @@ export default function PipelineConsultor() {
                   ) : (
                     etapa.clientes.map((cliente) => {
                       const proposta = getPropostaPrincipal(cliente.id)
-                      const preco = proposta?.origem === 'estoque'
+                      const precoBase = proposta?.origem === 'estoque'
                         ? proposta?.veiculos?.preco
                         : proposta?.preco_externa
+                      const preco = proposta?.preco_negociado || precoBase
                       const veiculoNome = proposta?.origem === 'estoque'
                         ? `${proposta?.veiculos?.marca || ''} ${proposta?.veiculos?.modelo || ''} ${proposta?.veiculos?.versao || ''}`.trim()
                         : proposta ? `${proposta?.marca_externa || ''} ${proposta?.modelo_externa || ''}`.trim() : null
@@ -310,7 +311,7 @@ export default function PipelineConsultor() {
                       const atrasado = prazo && prazo < new Date()
                       const ehHoje = prazo && prazo.toDateString() === new Date().toDateString()
 
-                      // Commission estimate (1% of vehicle price)
+                      // Commission estimate (1% of negotiated or base vehicle price)
                       const comissaoPrevista = preco ? Number(preco) * 0.01 : null
 
                       return (
@@ -334,7 +335,16 @@ export default function PipelineConsultor() {
 
                           {/* Price */}
                           {preco && (
-                            <p className="text-xs font-semibold text-slate-700 mb-2">{fmtMoeda(preco)}</p>
+                            <div className="flex items-center gap-1.5 mb-2">
+                              {proposta?.preco_negociado && precoBase ? (
+                                <>
+                                  <p className="text-[10px] text-slate-400 line-through">{fmtMoeda(precoBase)}</p>
+                                  <p className="text-xs font-semibold text-emerald-600">{fmtMoeda(preco)}</p>
+                                </>
+                              ) : (
+                                <p className="text-xs font-semibold text-slate-700">{fmtMoeda(preco)}</p>
+                              )}
+                            </div>
                           )}
 
                           {/* Next action */}

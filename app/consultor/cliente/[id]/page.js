@@ -13,6 +13,7 @@ import { useCallback } from 'react'
 import Contratos from '../../../components/Contratos'
 import ChatFlutuante from '../../../components/ChatFlutuante'
 import LaudosConsultor from '../../../components/LaudosConsultor'
+import GaleriaVeiculo from '../../../components/GaleriaVeiculo'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'],
@@ -53,6 +54,8 @@ const [propostas, setPropostas] = useState([])
   const [propostaExterna, setPropostaExterna] = useState({
     marca_externa: '', modelo_externa: '', ano_externa: '', preco_externa: '', observacao_externa: '', link_externo: '',
   })
+  const [fotosExternas, setFotosExternas] = useState([])
+  const [uploadingFoto, setUploadingFoto] = useState(false)
   const [salvandoProposta, setSalvandoProposta] = useState(false)
 
   useEffect(() => {
@@ -118,7 +121,8 @@ const [propostas, setPropostas] = useState([])
         .select(`
           id, marca, modelo, versao, ano_fabricacao, ano_modelo, cor, cambio,
           combustivel, categoria, km, preco, preco_negociacao, status,
-          concessionarias ( nome_fantasia, cidade, estado )
+          concessionarias ( nome_fantasia, cidade, estado ),
+          veiculo_fotos (id, url, ordem)
         `)
         .eq('status', 'ativo')
 
@@ -141,7 +145,7 @@ const [propostas, setPropostas] = useState([])
 
       const { data: propostasData } = await supabase
         .from('propostas')
-        .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ) )')
+        .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ), veiculo_fotos(id, url, ordem) )')
         .eq('cliente_id', clienteId)
         .order('created_at', { ascending: false })
 
@@ -177,13 +181,49 @@ const [propostas, setPropostas] = useState([])
     }
   }
 
-async function carregarPropostas() {
+  async function carregarPropostas() {
     const { data } = await supabase
       .from('propostas')
-      .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ) )')
+      .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ), veiculo_fotos(id, url, ordem) )')
       .eq('cliente_id', clienteId)
       .order('created_at', { ascending: false })
     setPropostas(data || [])
+  }
+
+  async function handleUploadFoto(e) {
+    if (!e.target.files || e.target.files.length === 0) return
+    if (fotosExternas.length >= 4) {
+      alert('Máximo de 4 fotos atingido.')
+      return
+    }
+
+    setUploadingFoto(true)
+
+    const file = e.target.files[0]
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await fetch('/api/upload-foto', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Erro no upload')
+
+      setFotosExternas([...fotosExternas, { url: data.url }])
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setUploadingFoto(false)
+      e.target.value = ''
+    }
+  }
+
+  function removerFoto(index) {
+    setFotosExternas(fotosExternas.filter((_, i) => i !== index))
   }
 
   async function criarProposta(e) {
@@ -211,6 +251,7 @@ async function carregarPropostas() {
           preco_externa: propostaExterna.preco_externa || null,
           observacao_externa: propostaExterna.observacao_externa,
           link_externo: propostaExterna.link_externo,
+          fotos_externas: fotosExternas,
         }
 
     const { error } = await supabase.from('propostas').insert([dados])
@@ -222,6 +263,7 @@ async function carregarPropostas() {
       setVeiculoEscolhido('')
       setPrecoNegociadoEstoque('')
       setPropostaExterna({ marca_externa: '', modelo_externa: '', ano_externa: '', preco_externa: '', observacao_externa: '', link_externo: '' })
+      setFotosExternas([])
       carregarPropostas()
     } else {
       alert('Erro ao apresentar proposta: ' + error.message)
@@ -543,6 +585,13 @@ async function carregarPropostas() {
                       </option>
                     ))}
                   </select>
+
+                  {veiculoEscolhido && (
+                    <div className="w-1/3 aspect-video shrink-0 rounded-lg overflow-hidden border border-gray-100">
+                      <GaleriaVeiculo fotos={veiculosEstoque.find(v => v.id === veiculoEscolhido)?.veiculo_fotos || []} />
+                    </div>
+                  )}
+
                   <input
                     type="number"
                     step="0.01"
@@ -565,6 +614,35 @@ async function carregarPropostas() {
                   </div>
                   <input type="text" placeholder="Link do anúncio (opcional)" value={propostaExterna.link_externo} onChange={(e) => setPropostaExterna({ ...propostaExterna, link_externo: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400" />
                   <textarea placeholder="Observações sobre essa opção" rows={2} value={propostaExterna.observacao_externa} onChange={(e) => setPropostaExterna({ ...propostaExterna, observacao_externa: e.target.value })} className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 resize-none" />
+                  
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-2">Fotos do veículo (Máx 4)</label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {fotosExternas.map((f, i) => (
+                        <div key={i} className="relative aspect-video rounded-lg overflow-hidden border border-gray-200 group bg-gray-50 flex items-center justify-center">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={f.url} alt={`Foto ${i+1}`} className="object-cover w-full h-full" />
+                          <button type="button" onClick={() => removerFoto(i)} className="absolute top-1 right-1 bg-white/90 text-red-500 rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-white transition opacity-0 group-hover:opacity-100">
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      
+                      {fotosExternas.length < 4 && (
+                        <label className={`relative aspect-video rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition ${uploadingFoto ? 'border-blue-300 bg-blue-50' : 'border-gray-200 hover:border-blue-400 hover:bg-blue-50/50'}`}>
+                          <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp" onChange={handleUploadFoto} disabled={uploadingFoto} />
+                          {uploadingFoto ? (
+                            <span className="text-xs text-blue-500 font-medium animate-pulse">Enviando...</span>
+                          ) : (
+                            <>
+                              <span className="text-xl text-gray-400 mb-1">+</span>
+                              <span className="text-xs text-gray-500 font-medium text-center px-2">Adicionar foto</span>
+                            </>
+                          )}
+                        </label>
+                      )}
+                    </div>
+                  </div>
                 </>
               )}
 
@@ -581,8 +659,16 @@ async function carregarPropostas() {
                 ? { marca: p.veiculos?.marca, modelo: p.veiculos?.modelo, versao: p.veiculos?.versao, ano: `${p.veiculos?.ano_fabricacao}/${p.veiculos?.ano_modelo}`, preco: p.veiculos?.preco, preco_negociado: p.preco_negociado, fonte: p.veiculos?.concessionarias?.nome_fantasia }
                 : { marca: p.marca_externa, modelo: p.modelo_externa, versao: '', ano: p.ano_externa, preco: p.preco_externa, preco_negociado: null, fonte: 'Encontrado por fora' }
 
+              const fotos = p.origem === 'estoque' ? p.veiculos?.veiculo_fotos : p.fotos_externas
+
               return (
-                <div key={p.id} className="border border-gray-100 rounded-xl p-4 flex justify-between items-start">
+                <div key={p.id} className="border border-gray-100 rounded-xl p-4 flex flex-col gap-3">
+                  {fotos && fotos.length > 0 && (
+                    <div className="w-full aspect-video rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                      <GaleriaVeiculo fotos={fotos} />
+                    </div>
+                  )}
+                  <div className="flex justify-between items-start">
                   <div>
                     <p className="text-sm font-semibold text-blue-950">{dados.marca} {dados.modelo} {dados.versao}</p>
                     <p className="text-xs text-gray-400">{dados.ano} · {dados.fonte}</p>
@@ -599,6 +685,7 @@ async function carregarPropostas() {
                     </span>
                   </div>
                   <button onClick={() => removerProposta(p.id)} className="text-xs text-red-400 hover:text-red-600">Remover</button>
+                  </div>
                 </div>
               )
             })}

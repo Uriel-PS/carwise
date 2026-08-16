@@ -9,6 +9,7 @@ import DocumentosClienteLeitura from '../../../components/DocumentosClienteLeitu
 import HistoricoNegociacao from '../../../components/HistoricoNegociacao'
 import Agendamentos from '../../../components/Agendamentos'
 import Contratos from '../../../components/Contratos'
+import GaleriaVeiculo from '../../../components/GaleriaVeiculo'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'], ['conforto', 'Conforto'], ['tecnologia', 'Tecnologia'],
@@ -95,7 +96,7 @@ export default function DetalheClienteAdmin() {
 
     const { data: propostasData } = await supabase
   .from('propostas')
-  .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ) )')
+  .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ), veiculo_fotos(id, url, ordem) )')
   .eq('cliente_id', clienteId)
   .order('created_at', { ascending: false })
 
@@ -289,8 +290,15 @@ setPropostas(propostasData || [])
           ? { marca: p.veiculos?.marca, modelo: p.veiculos?.modelo, versao: p.veiculos?.versao, ano: `${p.veiculos?.ano_fabricacao}/${p.veiculos?.ano_modelo}`, preco: p.veiculos?.preco, fonte: p.veiculos?.concessionarias?.nome_fantasia }
           : { marca: p.marca_externa, modelo: p.modelo_externa, versao: '', ano: p.ano_externa, preco: p.preco_externa, fonte: 'Encontrado por fora' }
 
+        const fotos = p.origem === 'estoque' ? p.veiculos?.veiculo_fotos : p.fotos_externas
+
         return (
-          <div key={p.id} className="border border-gray-100 rounded-xl p-4">
+          <div key={p.id} className="border border-gray-100 rounded-xl p-4 flex flex-col gap-3">
+            {fotos && fotos.length > 0 && (
+              <div className="w-full aspect-video rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                <GaleriaVeiculo fotos={fotos} />
+              </div>
+            )}
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-semibold text-blue-950">{dados.marca} {dados.modelo} {dados.versao}</p>

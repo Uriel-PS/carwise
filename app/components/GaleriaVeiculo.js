@@ -28,7 +28,7 @@ export default function GaleriaVeiculo({ fotos = [] }) {
       <img 
         src={fotosOrdenadas[indexAtual].url} 
         alt="Foto do veículo" 
-        className="object-cover w-full h-full transition-opacity duration-300"
+        className="object-contain w-full h-full transition-opacity duration-300"
       />
 
       {fotosOrdenadas.length > 1 && (

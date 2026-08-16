@@ -13,6 +13,7 @@ import BloqueioPlano from '../components/BloqueioPlano'
 import Contratos from '../components/Contratos'
 import ChatFlutuante from '../components/ChatFlutuante'
 import MenuPerfil from '../components/MenuPerfil'
+import GaleriaVeiculo from '../components/GaleriaVeiculo'
 
 export default function Painel() {
   const router = useRouter()
@@ -63,7 +64,7 @@ export default function Painel() {
 
       const { data: propostasData } = await supabase
         .from('propostas')
-        .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ) )')
+        .select('*, veiculos ( marca, modelo, versao, ano_fabricacao, ano_modelo, preco, concessionarias ( nome_fantasia ), veiculo_fotos(id, url, ordem) )')
         .eq('cliente_id', clienteId)
         .order('created_at', { ascending: false })
 
@@ -243,9 +244,15 @@ export default function Painel() {
                             marca: p.marca_externa, modelo: p.modelo_externa, versao: '',
                             ano: p.ano_externa, preco: precoExibir, precoBase: precoBase, fonte: 'Encontrado pelo seu consultor',
                           }
+                      const fotos = p.origem === 'estoque' ? p.veiculos?.veiculo_fotos : p.fotos_externas
 
                       return (
                         <div key={p.id} className="border border-gray-100 rounded-xl p-5">
+                          {fotos && fotos.length > 0 && (
+                            <div className="w-full aspect-video rounded-xl overflow-hidden bg-gray-100 mb-4 shrink-0">
+                              <GaleriaVeiculo fotos={fotos} />
+                            </div>
+                          )}
                           <div className="flex justify-between items-start mb-2">
                             <div>
                               <h3 className="font-semibold text-blue-950">{dados.marca} {dados.modelo} {dados.versao}</h3>

@@ -220,6 +220,7 @@ export default function PainelConcessionaria() {
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-400 hidden sm:block">{concessionaria?.nome_fantasia}</span>
+            <a href="/concessionaria/config" className="text-sm font-semibold text-gray-500 hover:text-blue-600 transition">Configurações</a>
             <button
               onClick={handleLogout}
               className="text-sm font-semibold text-gray-500 hover:text-red-600 transition"

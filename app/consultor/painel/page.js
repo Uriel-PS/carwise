@@ -266,34 +266,38 @@ export default function DashboardConsultor() {
           </a>
         </div>
 
-        <div className="flex gap-1.5 items-end h-20 mb-3">
-          {ETAPAS_PIPELINE.map((etapa) => {
-            const count = pipelineCounts[etapa.key] || 0
-            const maxCount = Math.max(...Object.values(pipelineCounts), 1)
-            const height = count > 0 ? Math.max(20, (count / maxCount) * 100) : 6
+        <div className="overflow-x-auto pb-2 -mx-2 px-2 custom-scrollbar">
+          <div className="min-w-[600px] lg:min-w-0">
+            <div className="flex gap-1.5 items-end h-20 mb-3">
+              {ETAPAS_PIPELINE.map((etapa) => {
+                const count = pipelineCounts[etapa.key] || 0
+                const maxCount = Math.max(...Object.values(pipelineCounts), 1)
+                const height = count > 0 ? Math.max(20, (count / maxCount) * 100) : 6
 
-            return (
-              <div key={etapa.key} className="flex-1 flex flex-col items-center gap-1 group relative">
-                <span className="text-[10px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-5">
-                  {count}
-                </span>
-                <div
-                  className={`w-full rounded-t-md transition-all duration-500 ease-out cursor-pointer hover:opacity-80 ${getBarColor(etapa.cor)}`}
-                  style={{ height: `${height}%`, minHeight: count > 0 ? '12px' : '4px' }}
-                  title={`${etapa.label}: ${count}`}
-                />
-              </div>
-            )
-          })}
-        </div>
-        <div className="flex gap-1.5">
-          {ETAPAS_PIPELINE.map((etapa) => (
-            <div key={etapa.key} className="flex-1 text-center">
-              <span className="text-[9px] text-slate-400 font-medium leading-tight block truncate">
-                {etapa.label}
-              </span>
+                return (
+                  <div key={etapa.key} className="flex-1 flex flex-col items-center gap-1 group relative">
+                    <span className="text-[10px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-5">
+                      {count}
+                    </span>
+                    <div
+                      className={`w-full rounded-t-md transition-all duration-500 ease-out cursor-pointer hover:opacity-80 ${getBarColor(etapa.cor)}`}
+                      style={{ height: `${height}%`, minHeight: count > 0 ? '12px' : '4px' }}
+                      title={`${etapa.label}: ${count}`}
+                    />
+                  </div>
+                )
+              })}
             </div>
-          ))}
+            <div className="flex gap-1.5">
+              {ETAPAS_PIPELINE.map((etapa) => (
+                <div key={etapa.key} className="flex-1 text-center min-w-0">
+                  <span className="text-[9px] text-slate-400 font-medium leading-tight block truncate" title={etapa.label}>
+                    {etapa.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

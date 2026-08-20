@@ -188,7 +188,7 @@ export default function Painel() {
                 {perfil?.nome || usuario?.email}
               </h1>
             </div>
-            
+
             {temPlanoAtivo && nomePlano && (
               <div className="bg-blue-50/80 text-blue-700 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 border border-blue-100 shadow-sm">
                 <IconFinanceiro />
@@ -196,8 +196,8 @@ export default function Painel() {
               </div>
             )}
           </div>
-          
-          <StatusConsultoria etapaAtual={perfil?.etapa_atual} />
+
+          <StatusConsultoria etapaAtual={perfil?.etapa_pipeline || perfil?.etapa_atual} />
         </div>
 
         {erro && (
@@ -236,14 +236,14 @@ export default function Painel() {
 
                       const dados = p.origem === 'estoque'
                         ? {
-                            marca: p.veiculos?.marca, modelo: p.veiculos?.modelo, versao: p.veiculos?.versao,
-                            ano: `${p.veiculos?.ano_fabricacao}/${p.veiculos?.ano_modelo}`, preco: precoExibir, precoBase: precoBase,
-                            fonte: p.veiculos?.concessionarias?.nome_fantasia,
-                          }
+                          marca: p.veiculos?.marca, modelo: p.veiculos?.modelo, versao: p.veiculos?.versao,
+                          ano: `${p.veiculos?.ano_fabricacao}/${p.veiculos?.ano_modelo}`, preco: precoExibir, precoBase: precoBase,
+                          fonte: p.veiculos?.concessionarias?.nome_fantasia,
+                        }
                         : {
-                            marca: p.marca_externa, modelo: p.modelo_externa, versao: '',
-                            ano: p.ano_externa, preco: precoExibir, precoBase: precoBase, fonte: 'Encontrado pelo seu consultor',
-                          }
+                          marca: p.marca_externa, modelo: p.modelo_externa, versao: '',
+                          ano: p.ano_externa, preco: precoExibir, precoBase: precoBase, fonte: 'Encontrado pelo seu consultor',
+                        }
                       const fotos = p.origem === 'estoque' ? p.veiculos?.veiculo_fotos : p.fotos_externas
 
                       return (
@@ -292,9 +292,8 @@ export default function Painel() {
                               </button>
                             </div>
                           ) : (
-                            <span className={`inline-block text-xs font-mono px-2.5 py-1 rounded-full mt-2 ${
-                              p.status === 'aceita' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
-                            }`}>
+                            <span className={`inline-block text-xs font-mono px-2.5 py-1 rounded-full mt-2 ${p.status === 'aceita' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
+                              }`}>
                               {p.status === 'aceita' ? '✓ Você gostou desta opção' : 'Marcado como não interessante'}
                             </span>
                           )}
@@ -384,9 +383,8 @@ function Secao({ titulo, icon, children, expandivel = true }) {
       </div>
       <div className="relative">
         <div
-          className={`transition-all duration-300 overflow-hidden ${
-            !expandivel || expandido || !precisaExpandir ? '' : 'max-h-[350px]'
-          }`}
+          className={`transition-all duration-300 overflow-hidden ${!expandivel || expandido || !precisaExpandir ? '' : 'max-h-[350px]'
+            }`}
           style={expandivel && !expandido && precisaExpandir ? { maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)' } : {}}
         >
           <div ref={expandivel ? innerRef : null}>
@@ -419,11 +417,11 @@ function Secao({ titulo, icon, children, expandivel = true }) {
 }
 
 function IconFinanceiro() {
-  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round"/></svg>
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round" /></svg>
 }
 function IconVeiculo() {
-  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 16l1.4-4.5A2 2 0 017.3 10h9.4a2 2 0 011.9 1.5L20 16" stroke="#2B5FE0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><rect x="3" y="16" width="18" height="4" rx="1.5" stroke="#2B5FE0" strokeWidth="1.6"/></svg>
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 16l1.4-4.5A2 2 0 017.3 10h9.4a2 2 0 011.9 1.5L20 16" stroke="#2B5FE0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /><rect x="3" y="16" width="18" height="4" rx="1.5" stroke="#2B5FE0" strokeWidth="1.6" /></svg>
 }
 function IconDocumento() {
-  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round"/><path d="M14 2v6h6" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round"/></svg>
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round" /><path d="M14 2v6h6" stroke="#2B5FE0" strokeWidth="1.6" strokeLinejoin="round" /></svg>
 }

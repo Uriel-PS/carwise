@@ -450,23 +450,11 @@ const [propostas, setPropostas] = useState([])
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5">
-          <p className="text-xs font-mono text-blue-600 uppercase tracking-widest mb-5">Status da consultoria</p>
-          <StatusConsultoria etapaAtual={perfil?.etapa_atual} />
-          <div className="flex gap-2 mt-6 flex-wrap">
-            {ETAPAS_ORDEM.map((etapa) => (
-              <button
-                key={etapa}
-                onClick={() => mudarEtapa(etapa)}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${
-                  perfil?.etapa_atual === etapa
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                }`}
-              >
-                {etapa}
-              </button>
-            ))}
-          </div>
+          <p className="text-xs font-mono text-blue-600 uppercase tracking-widest mb-5">Status da consultoria (visão do cliente)</p>
+          <StatusConsultoria etapaAtual={perfil?.etapa_pipeline || perfil?.etapa_atual} />
+          <p className="text-xs text-gray-400 mt-4">
+            Este status é atualizado automaticamente pelo Pipeline. Altere a etapa no <a href="/consultor/pipeline" className="text-blue-600 hover:underline font-medium">Pipeline de Vendas</a> para refletir aqui.
+          </p>
         </div>
 
         {ranking.length > 0 && (

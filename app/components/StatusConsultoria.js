@@ -1,3 +1,21 @@
+// Mapping from consultant's granular pipeline stages to client-facing stages
+const PIPELINE_MAP = {
+  novos: 'cadastro',
+  entrevista: 'cadastro',
+  perfil_definido: 'cadastro',
+  cadastro: 'cadastro',
+  buscando: 'buscando',
+  veiculos_selecionados: 'buscando',
+  negociando: 'negociando',
+  vistoria: 'negociando',
+  test_drive: 'negociando',
+  proposta: 'negociando',
+  documentacao: 'documentacao',
+  compra_concluida: 'entrega',
+  pos_venda: 'entrega',
+  entrega: 'entrega',
+}
+
 const ETAPAS = [
   { chave: 'cadastro', label: 'Cadastro' },
   { chave: 'buscando', label: 'Buscando veículos' },
@@ -7,7 +25,9 @@ const ETAPAS = [
 ]
 
 export default function StatusConsultoria({ etapaAtual }) {
-  const indiceAtual = ETAPAS.findIndex((e) => e.chave === etapaAtual)
+  // Map the pipeline stage to a client-facing stage
+  const etapaMapeada = PIPELINE_MAP[etapaAtual] || PIPELINE_MAP['novos']
+  const indiceAtual = ETAPAS.findIndex((e) => e.chave === etapaMapeada)
   const indice = indiceAtual === -1 ? 0 : indiceAtual
 
   return (
@@ -36,3 +56,6 @@ export default function StatusConsultoria({ etapaAtual }) {
     </div>
   )
 }
+
+// Export the mapping for use in other components
+export { PIPELINE_MAP }

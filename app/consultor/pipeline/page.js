@@ -115,6 +115,17 @@ export default function PipelineConsultor() {
     })
   }
 
+  function moverClienteTouch(cliente, novaEtapa) {
+    const etapaAtual = cliente.etapa_pipeline || cliente.etapa_atual || 'novos'
+    if (etapaAtual === novaEtapa) return
+
+    setModalConfirm({
+      cliente,
+      etapaAnterior: etapaAtual,
+      novaEtapa,
+    })
+  }
+
   async function confirmarMudancaEtapa() {
     if (!modalConfirm || !consultor) return
 
@@ -363,11 +374,25 @@ export default function PipelineConsultor() {
 
                           {/* Commission */}
                           {comissaoPrevista && (
-                            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100">
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100 mb-2">
                               <span>Comissão prevista</span>
                               <span className="font-semibold text-emerald-600">{fmtMoeda(comissaoPrevista)}</span>
                             </div>
                           )}
+
+                          {/* Mover (Mobile/Touch) */}
+                          <div className="mt-2 pt-2 border-t border-slate-100 lg:hidden flex justify-between items-center" onClick={(e) => e.stopPropagation()}>
+                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Mover</span>
+                            <select 
+                              className="text-[10px] font-semibold bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 outline-none focus:border-blue-400 cursor-pointer"
+                              value={cliente.etapa_pipeline || cliente.etapa_atual || 'novos'}
+                              onChange={(e) => moverClienteTouch(cliente, e.target.value)}
+                            >
+                              {ETAPAS_PIPELINE.map(et => (
+                                <option key={et.key} value={et.key}>{et.label}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       )
                     })

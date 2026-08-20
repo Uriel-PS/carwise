@@ -11,24 +11,26 @@ export default function StatusConsultoria({ etapaAtual }) {
   const indice = indiceAtual === -1 ? 0 : indiceAtual
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="w-full flex justify-between items-start relative px-1 sm:px-2">
       {ETAPAS.map((etapa, i) => (
-        <div key={etapa.chave} className="flex items-center flex-1 last:flex-none">
-          <div className="flex flex-col items-center gap-1.5">
-            <div className={`w-3 h-3 rounded-full shrink-0 ${
-              i < indice ? 'bg-blue-600' :
-              i === indice ? 'bg-blue-600 ring-4 ring-blue-100' :
-              'bg-gray-200'
-            }`} />
-            <span className={`text-[10.5px] font-medium text-center whitespace-nowrap ${
-              i === indice ? 'text-blue-950' : i < indice ? 'text-blue-600' : 'text-gray-300'
-            }`}>
-              {etapa.label}
-            </span>
-          </div>
+        <div key={etapa.chave} className="relative flex flex-col items-center z-10 flex-1">
           {i < ETAPAS.length - 1 && (
-            <div className={`h-0.5 flex-1 mx-1 -mt-4 ${i < indice ? 'bg-blue-600' : 'bg-gray-200'}`} />
+            <div 
+              className={`absolute top-[5px] left-1/2 w-full h-0.5 -z-10 ${i < indice ? 'bg-blue-600' : 'bg-gray-200'}`} 
+            />
           )}
+          
+          <div className={`w-3 h-3 rounded-full shrink-0 ${
+            i < indice ? 'bg-blue-600' :
+            i === indice ? 'bg-blue-600 ring-4 ring-blue-100' :
+            'bg-gray-200'
+          }`} />
+          
+          <span className={`mt-2 text-[9px] sm:text-[10.5px] text-center leading-[1.2] px-0.5 sm:px-1 w-full max-w-[70px] sm:max-w-none ${
+            i === indice ? 'text-blue-950 font-bold' : i < indice ? 'text-blue-600 font-medium' : 'text-gray-400 font-medium'
+          }`}>
+            {etapa.label}
+          </span>
         </div>
       ))}
     </div>

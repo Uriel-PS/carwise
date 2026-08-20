@@ -134,7 +134,7 @@ export default function ConsultorLayout({ children }) {
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:sticky top-0 left-0 z-50 h-screen
+          fixed lg:sticky top-0 left-0 z-50 h-[100dvh]
           w-[260px] flex flex-col
           bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950
           border-r border-slate-800/50
@@ -145,13 +145,15 @@ export default function ConsultorLayout({ children }) {
       >
         {/* Logo */}
         <div className="px-6 py-5 flex items-center gap-3 border-b border-slate-800/50">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <span className="text-white text-sm font-black">CW</span>
-          </div>
-          <div>
-            <h1 className="text-white font-[family-name:var(--font-display)] font-extrabold text-[17px] tracking-tight">CarWise</h1>
-            <p className="text-slate-500 text-[10px] font-medium tracking-wider uppercase">Consultor</p>
-          </div>
+          <a href="/consultor/painel" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <span className="text-white text-sm font-black">CW</span>
+            </div>
+            <div>
+              <h1 className="text-white font-[family-name:var(--font-display)] font-extrabold text-[17px] tracking-tight">CarWise</h1>
+              <p className="text-slate-500 text-[10px] font-medium tracking-wider uppercase">Consultor</p>
+            </div>
+          </a>
           {/* Close button mobile */}
           <button
             onClick={() => setSidebarOpen(false)}

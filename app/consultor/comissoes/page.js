@@ -230,7 +230,8 @@ export default function ComissoesConsultor() {
 
       {/* Commissions table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/70 overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
           <thead>
             <tr className="bg-slate-50/70 text-left text-[11px] text-slate-400 uppercase tracking-wider">
               <th className="px-6 py-3.5 font-semibold">Cliente</th>
@@ -269,6 +270,7 @@ export default function ComissoesConsultor() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

@@ -282,7 +282,8 @@ function SecaoTabela({ children, maxHeight = '220px' }) {
 
 function TabelaClientes({ clientes, router, mensagensNaoLidas, assumirCliente, etapasLabels }) {
   return (
-    <table className="w-full text-sm">
+    <div className="overflow-x-auto">
+    <table className="w-full text-sm min-w-[900px]">
       <thead>
         <tr className="bg-slate-50/70 text-left text-[11px] text-slate-400 uppercase tracking-wider">
           <th className="px-6 py-3.5 font-semibold">Nome</th>
@@ -362,5 +363,6 @@ function TabelaClientes({ clientes, router, mensagensNaoLidas, assumirCliente, e
         )}
       </tbody>
     </table>
+    </div>
   )
 }

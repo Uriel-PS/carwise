@@ -29,6 +29,7 @@ export default function PipelineConsultor() {
   const [dragOverEtapa, setDragOverEtapa] = useState(null)
   const [modalConfirm, setModalConfirm] = useState(null)
   const [filtroTexto, setFiltroTexto] = useState('')
+  const [moverModal, setMoverModal] = useState(null) // { cliente, etapaAtual }
 
   const carregar = useCallback(async () => {
     const { data: sessionData } = await supabase.auth.getSession()
@@ -381,17 +382,14 @@ export default function PipelineConsultor() {
                           )}
 
                           {/* Mover (Mobile/Touch) */}
-                          <div className="mt-2 pt-2 border-t border-slate-100 lg:hidden flex justify-between items-center" onClick={(e) => e.stopPropagation()}>
-                            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Mover</span>
-                            <select 
-                              className="text-[10px] font-semibold bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 outline-none focus:border-blue-400 cursor-pointer"
-                              value={cliente.etapa_pipeline || cliente.etapa_atual || 'novos'}
-                              onChange={(e) => moverClienteTouch(cliente, e.target.value)}
+                          <div className="mt-2 pt-2 border-t border-slate-100 lg:hidden" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setMoverModal({ cliente, etapaAtual: cliente.etapa_pipeline || cliente.etapa_atual || 'novos' })}
+                              className="w-full flex items-center justify-between text-[11px] font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 rounded-lg px-3 py-2.5 transition"
                             >
-                              {ETAPAS_PIPELINE.map(et => (
-                                <option key={et.key} value={et.key}>{et.label}</option>
-                              ))}
-                            </select>
+                              <span>Mover de etapa</span>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            </button>
                           </div>
                         </div>
                       )
@@ -403,6 +401,79 @@ export default function PipelineConsultor() {
           })}
         </div>
       </div>
+
+      {/* Bottom Sheet - Move Stage (Mobile) */}
+      {moverModal && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end justify-center"
+          onClick={() => setMoverModal(null)}
+        >
+          <div
+            className="bg-white rounded-t-2xl shadow-2xl w-full max-w-lg animate-in"
+            style={{ maxHeight: '80vh', animation: 'slideUp 0.3s ease-out' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle bar */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
+
+            {/* Header */}
+            <div className="px-5 pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-base text-slate-900">Mover de etapa</h3>
+              <p className="text-xs text-slate-400 mt-0.5 truncate">
+                {moverModal.cliente.nome}
+              </p>
+            </div>
+
+            {/* Scrollable list of stages */}
+            <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: 'calc(80vh - 120px)', WebkitOverflowScrolling: 'touch' }}>
+              <div className="py-2 px-3">
+                {ETAPAS_PIPELINE.map((etapa) => {
+                  const isAtual = etapa.key === moverModal.etapaAtual
+                  return (
+                    <button
+                      key={etapa.key}
+                      onClick={() => {
+                        if (!isAtual) {
+                          moverClienteTouch(moverModal.cliente, etapa.key)
+                        }
+                        setMoverModal(null)
+                      }}
+                      disabled={isAtual}
+                      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl mb-1 text-left transition-all ${
+                        isAtual
+                          ? 'bg-blue-50 border-2 border-blue-200 cursor-default'
+                          : 'bg-white hover:bg-slate-50 active:bg-slate-100 border border-transparent'
+                      }`}
+                    >
+                      <span className="text-lg shrink-0">{etapa.icone}</span>
+                      <span className={`text-sm font-semibold flex-1 ${isAtual ? 'text-blue-700' : 'text-slate-700'}`}>
+                        {etapa.label}
+                      </span>
+                      {isAtual && (
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full shrink-0">
+                          Atual
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Cancel button */}
+            <div className="px-5 py-4 border-t border-slate-100">
+              <button
+                onClick={() => setMoverModal(null)}
+                className="w-full text-sm font-semibold text-slate-500 hover:text-slate-700 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 transition"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Modal */}
       {modalConfirm && (

@@ -126,7 +126,8 @@ export default function AdminComissoes() {
 
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/70 overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <table className="w-full text-sm" style={{ minWidth: '700px' }}>
             <thead>
               <tr className="bg-slate-50/70 text-left text-[11px] text-slate-400 uppercase tracking-wider">
                 <th className="px-6 py-3.5 font-semibold">Consultor</th>
@@ -158,14 +159,14 @@ export default function AdminComissoes() {
                           <button
                             onClick={() => cancelarComissao(c.id)}
                             disabled={atualizandoId === c.id}
-                            className="text-[10px] font-semibold bg-red-50 text-red-600 px-3 py-1.5 rounded-full hover:bg-red-100 transition disabled:opacity-50"
+                            className="text-[10px] font-semibold bg-red-50 text-red-600 px-3 py-1.5 rounded-full hover:bg-red-100 transition disabled:opacity-50 whitespace-nowrap"
                           >
                             ✕ Cancelar
                           </button>
                           <button
                             onClick={() => avancarStatus(c.id, c.consultor_id, c.status)}
                             disabled={atualizandoId === c.id}
-                            className="text-[10px] font-semibold bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition disabled:opacity-50"
+                            className="text-[10px] font-semibold bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition disabled:opacity-50 whitespace-nowrap"
                           >
                             {atualizandoId === c.id ? 'Aguarde...' : (c.status === 'prevista' || c.status === 'pendente' ? 'Aprovar →' : 'Marcar como Paga ✓')}
                           </button>
@@ -184,6 +185,7 @@ export default function AdminComissoes() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>

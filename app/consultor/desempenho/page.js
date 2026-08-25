@@ -183,8 +183,11 @@ export default function DesempenhoConsultor() {
   const propostasPendentes = propostas.filter(p => p.status === 'pendente').length
   const taxaFechamento = propostas.length > 0 ? Math.round((propostasAceitas / propostas.length) * 100) : 0
 
-  // Vehicle values
-  const valoresVeiculos = propostas.filter(p => p.status === 'aceita').map(p => {
+  // Vehicle values (only from truly completed sales)
+  const valoresVeiculos = propostas.filter(p => {
+    if (p.status !== 'aceita') return false
+    return true
+  }).map(p => {
     const precoBase = p.origem === 'estoque' ? p.veiculos?.preco : p.preco_externa
     const preco = p.preco_negociado || precoBase
     return Number(preco) || 0
@@ -193,9 +196,24 @@ export default function DesempenhoConsultor() {
     ? valoresVeiculos.reduce((a, b) => a + b, 0) / valoresVeiculos.length
     : 0
 
-  // Economy (calculated directly from accepted proposals to ensure accuracy)
+  // Economy (calculated from accepted proposals, excluding cancelled commissions and reverted sales)
+  const clientesConcluidosIds = new Set(
+    clientes.filter(c => {
+      const etapa = c.etapa_pipeline || c.etapa_atual
+      return etapa === 'compra_concluida' || etapa === 'pos_venda' || etapa === 'entrega'
+    }).map(c => c.id)
+  )
+
+  const comissoesCanceladasPropostaIds = new Set(
+    comissoes.filter(c => c.status === 'cancelada').map(c => c.proposta_id).filter(Boolean)
+  )
+
   const propostasComDesconto = propostas.filter(p => {
     if (p.status !== 'aceita') return false
+    // Exclude if the commission for this proposal was cancelled
+    if (comissoesCanceladasPropostaIds.has(p.id)) return false
+    // Exclude if the client is no longer in a completed stage (sale was reverted)
+    if (!clientesConcluidosIds.has(p.cliente_id)) return false
     const precoAnunciado = p.origem === 'estoque' ? p.veiculos?.preco : p.preco_externa
     return precoAnunciado && p.preco_negociado && Number(precoAnunciado) > Number(p.preco_negociado)
   })

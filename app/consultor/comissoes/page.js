@@ -101,15 +101,19 @@ export default function ComissoesConsultor() {
   const totalMes = comissoesMes.reduce((s, c) => s + Number(c.valor || 0), 0)
   const vendasMes = comissoesMes.length
 
+  // For the goal, only count confirmed commissions (approved + paid)
+  const comissoesMesConfirmadas = comissoesMes.filter(c => c.status === 'aprovada' || c.status === 'paga')
+  const totalMesConfirmado = comissoesMesConfirmadas.reduce((s, c) => s + Number(c.valor || 0), 0)
+
   // Filter
   const comissoesFiltradas = filtroStatus === 'todos'
     ? comissoes
     : comissoes.filter(c => c.status === filtroStatus)
 
-  // Meta progress
+  // Meta progress (only confirmed commissions count towards goal)
   const valorMeta = meta?.valor_meta || 10000
-  const progresso = Math.min(100, Math.round((totalMes / valorMeta) * 100))
-  const faltam = Math.max(0, valorMeta - totalMes)
+  const progresso = Math.min(100, Math.round((totalMesConfirmado / valorMeta) * 100))
+  const faltam = Math.max(0, valorMeta - totalMesConfirmado)
 
   function fmtMoeda(v) {
     if (!v && v !== 0) return 'R$ 0'
@@ -157,8 +161,9 @@ export default function ComissoesConsultor() {
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 text-white col-span-2 lg:col-span-1">
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Total geral</p>
           <p className="text-2xl font-bold">{fmtMoeda(totalGeral)}</p>
-          <div className="flex gap-3 mt-3 text-[10px]">
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> {fmtMoeda(totalPrevista)}</span>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 text-[10px]">
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-400" /> {fmtMoeda(totalPrevista)}</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> {fmtMoeda(totalPendente)}</span>
             <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> {fmtMoeda(totalAprovada)}</span>
             <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {fmtMoeda(totalPaga)}</span>
           </div>
@@ -189,7 +194,7 @@ export default function ComissoesConsultor() {
           <div>
             <h2 className="font-bold text-slate-900 text-base">Meta de {MESES[mesAtual]}</h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              {fmtMoeda(totalMes)} / {fmtMoeda(valorMeta)}
+              {fmtMoeda(totalMesConfirmado)} / {fmtMoeda(valorMeta)}
             </p>
           </div>
           <span className="text-2xl font-bold text-slate-900">{progresso}%</span>

@@ -239,12 +239,23 @@ export default function PainelConcessionaria() {
             <h1 className="font-[family-name:var(--font-display)] font-bold text-2xl text-blue-950 mb-1">Seu estoque no CarWise</h1>
             <p className="text-gray-400 text-sm">{veiculos.length} veículo{veiculos.length !== 1 ? 's' : ''} cadastrado{veiculos.length !== 1 ? 's' : ''}</p>
           </div>
-          <button
-            onClick={() => mostrarForm ? setMostrarForm(false) : abrirNovo()}
-            className="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 hover:-translate-y-0.5 transition shadow-sm"
-          >
-            {mostrarForm ? 'Cancelar' : '+ Cadastrar veículo'}
-          </button>
+          <div className="flex gap-3">
+            <a
+              href="/concessionaria/importar"
+              className="bg-white text-blue-600 text-sm font-semibold px-5 py-2.5 rounded-lg border border-blue-200 hover:bg-blue-50 hover:-translate-y-0.5 transition shadow-sm flex items-center gap-2"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Importar estoque
+            </a>
+            <button
+              onClick={() => mostrarForm ? setMostrarForm(false) : abrirNovo()}
+              className="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 hover:-translate-y-0.5 transition shadow-sm"
+            >
+              {mostrarForm ? 'Cancelar' : '+ Cadastrar veículo'}
+            </button>
+          </div>
         </div>
 
         {erro && <p className="text-red-600 text-sm mb-5 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{erro}</p>}

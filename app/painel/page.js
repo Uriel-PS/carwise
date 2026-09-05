@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabaseClient'
+import { useNotificacoesRealtime } from '../lib/useNotificacoesRealtime'
 import StatusConsultoria from '../components/StatusConsultoria'
 import DocumentosCliente from '../components/DocumentosCliente'
 import FaqInterativo from '../components/FaqInterativo'
@@ -14,6 +15,8 @@ import Contratos from '../components/Contratos'
 import ChatFlutuante from '../components/ChatFlutuante'
 import MenuPerfil from '../components/MenuPerfil'
 import GaleriaVeiculo from '../components/GaleriaVeiculo'
+import NotificacoesCliente from '../components/NotificacoesCliente'
+import ToastNotificacao from '../components/ToastNotificacao'
 
 export default function Painel() {
   const router = useRouter()
@@ -91,6 +94,50 @@ export default function Painel() {
     carregarDados()
   }, [router])
 
+  // Notificações em tempo real do cliente
+  const {
+    novaNotificacao,
+    limparNovaNotificacao,
+  } = useNotificacoesRealtime({
+    tabela: 'notificacoes_cliente',
+    colunaId: 'cliente_id',
+    valorId: perfil?.id,
+    habilitado: !!perfil?.id && temPlanoAtivo,
+  })
+
+  // Subscrever chat em tempo real para atualizar contador de não-lidas
+  useEffect(() => {
+    if (!perfil?.id) return
+
+    const canalId = `chat-counter-${perfil.id}-${Math.random().toString(36).substring(7)}`
+    const canal = supabase
+      .channel(canalId)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'mensagens_chat', filter: `cliente_id=eq.${perfil.id}` },
+        (payload) => {
+          if (payload.new.autor_tipo === 'consultor') {
+            setNaoLidas(prev => prev + 1)
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'mensagens_chat', filter: `cliente_id=eq.${perfil.id}` },
+        (payload) => {
+          // Se a mensagem foi marcada como lida agora
+          if (payload.new.lida === true && payload.old?.lida === false && payload.new.autor_tipo === 'consultor') {
+            setNaoLidas(prev => Math.max(0, prev - 1))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(canal)
+    }
+  }, [perfil?.id])
+
   async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/login')
@@ -99,6 +146,32 @@ export default function Painel() {
   async function reagirProposta(id, novoStatus) {
     await supabase.from('propostas').update({ status: novoStatus }).eq('id', id)
     setPropostas(propostas.map((p) => (p.id === id ? { ...p, status: novoStatus } : p)))
+
+    // Notificar consultor sobre a reação do cliente
+    if (perfil?.consultor_id) {
+      const proposta = propostas.find((p) => p.id === id)
+      const veiculo = proposta?.veiculos
+        ? `${proposta.veiculos.marca} ${proposta.veiculos.modelo}`
+        : 'um veículo'
+
+      fetch('/api/enviar-notificacao-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destino: 'consultor',
+          destino_id: perfil.consultor_id,
+          tipo: novoStatus === 'aceita' ? 'comissao' : 'info',
+          titulo: novoStatus === 'aceita'
+            ? `${perfil.nome || 'Cliente'} gostou da proposta!`
+            : `${perfil.nome || 'Cliente'} recusou uma proposta`,
+          mensagem: novoStatus === 'aceita'
+            ? `A proposta para ${veiculo} foi aceita. Avance para os próximos passos.`
+            : `A proposta para ${veiculo} foi marcada como não interessante.`,
+          link: `/consultor/cliente/${perfil.id}`,
+          importancia: 'alta',
+        }),
+      }).catch(() => {})
+    }
 
     if (novoStatus === 'aceita') {
       const proposta = propostas.find((p) => p.id === id)
@@ -168,13 +241,18 @@ export default function Painel() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      <header className="bg-white/90 backdrop-blur border-b border-gray-100 sticky top-0 z-10">
+      <header className="bg-white/90 backdrop-blur border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
           <a href="/" className="flex items-center gap-2 font-[family-name:var(--font-display)] font-extrabold text-xl text-blue-950">
             <span className="w-2 h-2 rounded-full bg-blue-600"></span>
             CarWise
           </a>
-          <MenuPerfil nome={perfil?.nome || usuario?.email} onLogout={handleLogout} />
+          <div className="flex items-center gap-2">
+            {temPlanoAtivo && perfil && (
+              <NotificacoesCliente clienteId={perfil.id} />
+            )}
+            <MenuPerfil nome={perfil?.nome || usuario?.email} onLogout={handleLogout} />
+          </div>
         </div>
       </header>
 
@@ -343,8 +421,15 @@ export default function Painel() {
           tituloChat="Seu consultor"
           subtitulo="Online"
           naoLidas={naoLidas}
+          onAbrirChat={() => setNaoLidas(0)}
         />
       )}
+
+      {/* Toast de nova notificação */}
+      <ToastNotificacao
+        notificacao={novaNotificacao}
+        onFechar={limparNovaNotificacao}
+      />
     </div>
   )
 }

@@ -259,6 +259,29 @@ const [propostas, setPropostas] = useState([])
     setSalvandoProposta(false)
 
     if (!error) {
+      // Descobrir nome do veículo
+      const v = veiculos.find(veiculo => veiculo.id === veiculoEscolhido)
+      const nomeVeiculo = tipoProposta === 'estoque' && v
+        ? `${v.marca} ${v.modelo}`
+        : tipoProposta === 'externa'
+          ? `${propostaExterna.marca_externa} ${propostaExterna.modelo_externa}`
+          : 'um veículo'
+
+      // Enviar notificação e-mail para o cliente
+      fetch('/api/enviar-notificacao-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destino: 'cliente',
+          destino_id: clienteId,
+          tipo: 'proposta',
+          titulo: 'Seu consultor enviou uma nova proposta!',
+          mensagem: `Separei uma nova opção para você analisar: ${nomeVeiculo}. Acesse seu painel para conferir os detalhes e me dizer o que achou.`,
+          link: '/painel',
+          importancia: 'alta',
+        }),
+      }).catch(() => {})
+
       setMostrarFormProposta(false)
       setVeiculoEscolhido('')
       setPrecoNegociadoEstoque('')

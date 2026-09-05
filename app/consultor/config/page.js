@@ -21,6 +21,20 @@ export default function ConsultorConfiguracoes() {
   const [salvandoSenha, setSalvandoSenha] = useState(false)
   const [mensagemSenha, setMensagemSenha] = useState(null)
 
+  // Estados das preferências de notificação
+  const [prefsNotificacao, setPrefsNotificacao] = useState({
+    emails_habilitados: true,
+    email_nova_mensagem: true,
+    email_proposta_aceita: true,
+    email_proposta_recusada: true,
+    email_novo_agendamento: true,
+    email_comissao: true,
+    email_novo_cliente: true,
+  })
+  const [salvandoPrefs, setSalvandoPrefs] = useState(false)
+  const [mensagemPrefs, setMensagemPrefs] = useState(null)
+  const [authId, setAuthId] = useState(null)
+
   useEffect(() => {
     async function carregar() {
       const { data: sessionData } = await supabase.auth.getSession()
@@ -45,11 +59,72 @@ export default function ConsultorConfiguracoes() {
       setConsultor(consultorData)
       setNome(consultorData.nome || '')
       setEmail(consultorData.email || user.email || '')
+      setAuthId(user.id)
+
+      // Carregar preferências de notificação
+      try {
+        const { data: prefsData } = await supabase
+          .from('preferencias_notificacao')
+          .select('*')
+          .eq('auth_id', user.id)
+          .maybeSingle()
+
+        if (prefsData) {
+          setPrefsNotificacao(prev => ({ ...prev, ...prefsData }))
+        }
+      } catch {
+        // Tabela pode não existir ainda
+      }
+
       setCarregando(false)
     }
 
     carregar()
   }, [router])
+
+  async function handleSalvarPrefs() {
+    setSalvandoPrefs(true)
+    setMensagemPrefs(null)
+
+    try {
+      const { data: existente } = await supabase
+        .from('preferencias_notificacao')
+        .select('id')
+        .eq('auth_id', authId)
+        .maybeSingle()
+
+      const dadosPrefs = {
+        auth_id: authId,
+        emails_habilitados: prefsNotificacao.emails_habilitados,
+        email_nova_mensagem: prefsNotificacao.email_nova_mensagem,
+        email_proposta_aceita: prefsNotificacao.email_proposta_aceita,
+        email_proposta_recusada: prefsNotificacao.email_proposta_recusada,
+        email_novo_agendamento: prefsNotificacao.email_novo_agendamento,
+        email_comissao: prefsNotificacao.email_comissao,
+        email_novo_cliente: prefsNotificacao.email_novo_cliente,
+        updated_at: new Date().toISOString(),
+      }
+
+      if (existente) {
+        const { error } = await supabase
+          .from('preferencias_notificacao')
+          .update(dadosPrefs)
+          .eq('auth_id', authId)
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('preferencias_notificacao')
+          .insert([dadosPrefs])
+        if (error) throw error
+      }
+
+      setMensagemPrefs({ tipo: 'sucesso', texto: 'Preferências salvas com sucesso!' })
+    } catch (err) {
+      setMensagemPrefs({ tipo: 'erro', texto: `Erro ao salvar: ${err.message}` })
+    } finally {
+      setSalvandoPrefs(false)
+    }
+  }
 
   async function handleSalvarPerfil(e) {
     e.preventDefault()
@@ -244,7 +319,123 @@ export default function ConsultorConfiguracoes() {
             </div>
           </form>
         </div>
+
+        {/* Cartão de Preferências de Notificação */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/70 overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🔔</span>
+              <div>
+                <h2 className="font-bold text-slate-800 text-base">Notificações por E-mail</h2>
+                <p className="text-slate-500 text-xs mt-1">Escolha quais eventos devem enviar alerta no seu e-mail.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-6">
+            <div className="space-y-4 max-w-xl">
+              {/* Toggle global */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">E-mails habilitados</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Desative para não receber nenhum e-mail de notificação</p>
+                </div>
+                <ToggleSwitch
+                  ativo={prefsNotificacao.emails_habilitados}
+                  onChange={(v) => setPrefsNotificacao(prev => ({ ...prev, emails_habilitados: v }))}
+                />
+              </div>
+
+              {prefsNotificacao.emails_habilitados && (
+                <div className="space-y-2.5 pl-1">
+                  <TogglePreferencia
+                    label="Nova mensagem de chat"
+                    descricao="Quando um cliente enviar uma mensagem"
+                    ativo={prefsNotificacao.email_nova_mensagem}
+                    onChange={(v) => setPrefsNotificacao(prev => ({ ...prev, email_nova_mensagem: v }))}
+                  />
+                  <TogglePreferencia
+                    label="Proposta aceita"
+                    descricao="Quando um cliente aceitar uma proposta"
+                    ativo={prefsNotificacao.email_proposta_aceita}
+                    onChange={(v) => setPrefsNotificacao(prev => ({ ...prev, email_proposta_aceita: v }))}
+                  />
+                  <TogglePreferencia
+                    label="Proposta recusada"
+                    descricao="Quando um cliente recusar uma proposta"
+                    ativo={prefsNotificacao.email_proposta_recusada}
+                    onChange={(v) => setPrefsNotificacao(prev => ({ ...prev, email_proposta_recusada: v }))}
+                  />
+                  <TogglePreferencia
+                    label="Novo agendamento"
+                    descricao="Quando um test drive ou vistoria for agendado"
+                    ativo={prefsNotificacao.email_novo_agendamento}
+                    onChange={(v) => setPrefsNotificacao(prev => ({ ...prev, email_novo_agendamento: v }))}
+                  />
+                  <TogglePreferencia
+                    label="Comissões"
+                    descricao="Quando uma comissão for gerada ou aprovada"
+                    ativo={prefsNotificacao.email_comissao}
+                    onChange={(v) => setPrefsNotificacao(prev => ({ ...prev, email_comissao: v }))}
+                  />
+                  <TogglePreferencia
+                    label="Novo cliente atribuído"
+                    descricao="Quando um novo cliente for vinculado a você"
+                    ativo={prefsNotificacao.email_novo_cliente}
+                    onChange={(v) => setPrefsNotificacao(prev => ({ ...prev, email_novo_cliente: v }))}
+                  />
+                </div>
+              )}
+
+              {mensagemPrefs && (
+                <div className={`p-3 rounded-xl text-sm ${mensagemPrefs.tipo === 'sucesso' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                  {mensagemPrefs.texto}
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  onClick={handleSalvarPrefs}
+                  disabled={salvandoPrefs}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 px-5 rounded-xl transition disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {salvandoPrefs ? 'Salvando...' : 'Salvar preferências'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+  )
+}
+
+function ToggleSwitch({ ativo, onChange }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!ativo)}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+        ativo ? 'bg-blue-600' : 'bg-slate-200'
+      }`}
+    >
+      <span
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+          ativo ? 'translate-x-5' : 'translate-x-0'
+        }`}
+      />
+    </button>
+  )
+}
+
+function TogglePreferencia({ label, descricao, ativo, onChange }) {
+  return (
+    <div className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
+      <div>
+        <p className="text-sm font-medium text-slate-700">{label}</p>
+        {descricao && <p className="text-[11px] text-slate-400 mt-0.5">{descricao}</p>}
+      </div>
+      <ToggleSwitch ativo={ativo} onChange={onChange} />
     </div>
   )
 }

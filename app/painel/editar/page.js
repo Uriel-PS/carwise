@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
+import { formatarCPF, validarCPF, formatarTelefone } from '../../lib/validacoes'
 
 const PRIORIDADES_LABELS = [
   ['economia', 'Economia'], ['conforto', 'Conforto'], ['tecnologia', 'Tecnologia'],
@@ -284,13 +285,36 @@ function TituloPasso({ icon, children }) {
 }
 
 function PassoDados({ pessoal, setPessoal, onNext }) {
+  const [erroCPF, setErroCPF] = useState('')
+
   function set(campo, valor) { setPessoal({ ...pessoal, [campo]: valor }) }
+
+  function handleNext() {
+    if (!validarCPF(pessoal.cpf)) {
+      setErroCPF('CPF inválido')
+      return
+    }
+    setErroCPF('')
+    onNext()
+  }
+
   return (
     <div className="space-y-4">
       <TituloPasso icon={<IconDados />}>Dados pessoais</TituloPasso>
       <Input label="Nome completo" required value={pessoal.nome} onChange={e => set('nome', e.target.value)} />
       <div className="grid grid-cols-2 gap-3">
-        <Input label="CPF" required value={pessoal.cpf} onChange={e => set('cpf', e.target.value)} />
+        <div>
+          <Input 
+            label="CPF" 
+            required 
+            value={pessoal.cpf} 
+            onChange={e => {
+              set('cpf', formatarCPF(e.target.value))
+              if (erroCPF) setErroCPF('')
+            }} 
+          />
+          {erroCPF && <p className="text-red-500 text-xs mt-1">{erroCPF}</p>}
+        </div>
         <Input label="Data de nascimento" type="date" required value={pessoal.data_nascimento} onChange={e => set('data_nascimento', e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -298,12 +322,16 @@ function PassoDados({ pessoal, setPessoal, onNext }) {
           <Label>E-mail</Label>
           <input value={pessoal.email} disabled className="w-full border border-gray-100 rounded-lg px-4 py-3 text-sm text-gray-400 bg-gray-50 cursor-not-allowed" />
         </div>
-        <Input label="Telefone / WhatsApp" required value={pessoal.telefone} onChange={e => set('telefone', e.target.value)} />
+        <Input label="Telefone / WhatsApp" required value={pessoal.telefone} onChange={e => set('telefone', formatarTelefone(e.target.value))} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Select label="Estado civil" value={pessoal.estado_civil} onChange={e => set('estado_civil', e.target.value)}>
           <option value="">Selecione</option>
-          <option>Solteiro(a)</option><option>Casado(a)</option><option>Divorciado(a)</option><option>Viúvo(a)</option><option>União estável</option>
+          <option value="Solteiro">Solteiro</option>
+          <option value="Casado">Casado</option>
+          <option value="Divorciado">Divorciado</option>
+          <option value="Viúvo">Viúvo</option>
+          <option value="União estável">União estável</option>
         </Select>
         <Input label="Profissão" required value={pessoal.profissao} onChange={e => set('profissao', e.target.value)} />
       </div>
@@ -312,7 +340,7 @@ function PassoDados({ pessoal, setPessoal, onNext }) {
         <Input label="Cidade" required value={pessoal.cidade} onChange={e => set('cidade', e.target.value)} />
         <Input label="UF" required maxLength={2} value={pessoal.estado} onChange={e => set('estado', e.target.value)} />
       </div>
-      <NavBotoes onNext={onNext} />
+      <NavBotoes onNext={handleNext} />
     </div>
   )
 }

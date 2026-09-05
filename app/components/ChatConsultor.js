@@ -14,13 +14,18 @@ export default function ChatConsultor({ clienteId, autorTipo, autorId, autorNome
     carregarMensagens()
 
     // Inscreve para receber novas mensagens em tempo real
+    const canalId = `chat-${clienteId}-${Math.random().toString(36).substring(7)}`
     const canal = supabase
-      .channel(`chat-${clienteId}`)
+      .channel(canalId)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'mensagens_chat', filter: `cliente_id=eq.${clienteId}` },
         (payload) => {
           setMensagens((atual) => [...atual, payload.new])
+          // Se a mensagem for do outro, marca como lida já que o chat está aberto
+          if (payload.new.autor_tipo !== autorTipo) {
+            supabase.from('mensagens_chat').update({ lida: true }).eq('id', payload.new.id).then(() => {})
+          }
         }
       )
       .subscribe()
@@ -73,7 +78,53 @@ export default function ChatConsultor({ clienteId, autorTipo, autorId, autorNome
     setEnviando(false)
 
     if (!error) {
+      const msgTexto = texto.trim()
       setTexto('')
+
+      // Gerar notificação para o outro lado (via API server-side)
+      try {
+        if (autorTipo === 'cliente') {
+          // Cliente enviou → notificar consultor
+          const { data: clienteData } = await supabase
+            .from('clientes')
+            .select('consultor_id, nome')
+            .eq('id', clienteId)
+            .maybeSingle()
+
+          if (clienteData?.consultor_id) {
+            fetch('/api/enviar-notificacao-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                destino: 'consultor',
+                destino_id: clienteData.consultor_id,
+                tipo: 'novo_cliente',
+                titulo: `Nova mensagem de ${clienteData.nome || 'cliente'}`,
+                mensagem: msgTexto.length > 100 ? msgTexto.substring(0, 100) + '...' : msgTexto,
+                link: `/consultor/cliente/${clienteId}`,
+                importancia: 'alta',
+              }),
+            }).catch(() => {})
+          }
+        } else if (autorTipo === 'consultor') {
+          // Consultor enviou → notificar cliente
+          fetch('/api/enviar-notificacao-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              destino: 'cliente',
+              destino_id: clienteId,
+              tipo: 'mensagem',
+              titulo: `Nova mensagem de ${autorNome || 'seu consultor'}`,
+              mensagem: msgTexto.length > 100 ? msgTexto.substring(0, 100) + '...' : msgTexto,
+              link: '/painel',
+              importancia: 'alta',
+            }),
+          }).catch(() => {})
+        }
+      } catch {
+        // Notificação é best-effort, não bloqueia o chat
+      }
     }
   }
 

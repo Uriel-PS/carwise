@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabaseClient'
+import { useNotificacoesRealtime } from '../lib/useNotificacoesRealtime'
+import ToastNotificacao from '../components/ToastNotificacao'
 
 const MENU_ITEMS = [
   { key: 'painel', label: 'Dashboard', icon: '🏠', href: '/consultor/painel' },
@@ -26,7 +28,7 @@ export default function ConsultorLayout({ children }) {
   const [consultor, setConsultor] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [carregando, setCarregando] = useState(true)
-  const [notificacoesCount, setNotificacoesCount] = useState(0)
+  const [consultorId, setConsultorId] = useState(null)
   const [buscaGlobal, setBuscaGlobal] = useState('')
 
   // Skip layout for login page
@@ -61,24 +63,24 @@ export default function ConsultorLayout({ children }) {
       }
 
       setConsultor(consultorData)
-
-      // Try to load notifications count (table may not exist yet)
-      try {
-        const { count } = await supabase
-          .from('notificacoes_consultor')
-          .select('*', { count: 'exact', head: true })
-          .eq('consultor_id', consultorData.id)
-          .eq('lida', false)
-        setNotificacoesCount(count || 0)
-      } catch {
-        setNotificacoesCount(0)
-      }
-
+      setConsultorId(consultorData.id)
       setCarregando(false)
     }
 
     carregarConsultor()
   }, [router, isLoginPage])
+
+  // Hook de notificações em tempo real
+  const {
+    naoLidas: notificacoesCount,
+    novaNotificacao,
+    limparNovaNotificacao,
+  } = useNotificacoesRealtime({
+    tabela: 'notificacoes_consultor',
+    colunaId: 'consultor_id',
+    valorId: consultorId,
+    habilitado: !!consultorId && !isLoginPage,
+  })
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -300,6 +302,12 @@ export default function ConsultorLayout({ children }) {
         <main className="flex-1">
           {children}
         </main>
+
+        {/* Toast de nova notificação */}
+        <ToastNotificacao
+          notificacao={novaNotificacao}
+          onFechar={limparNovaNotificacao}
+        />
       </div>
     </div>
   )

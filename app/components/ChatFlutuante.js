@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import ChatConsultor from './ChatConsultor'
 
-export default function ChatFlutuante({ clienteId, autorTipo, autorId, autorNome, tituloChat, subtitulo, naoLidas = 0 }) {
+export default function ChatFlutuante({ clienteId, autorTipo, autorId, autorNome, tituloChat, subtitulo, naoLidas = 0, onAbrirChat }) {
   const [aberto, setAberto] = useState(false)
 
   if (!clienteId) return null
@@ -39,7 +39,10 @@ export default function ChatFlutuante({ clienteId, autorTipo, autorId, autorNome
 
       {!aberto && (
         <button
-          onClick={() => setAberto(true)}
+          onClick={() => {
+            setAberto(true)
+            if (onAbrirChat) onAbrirChat()
+          }}
           className={`fixed bottom-4 right-6 z-50 flex items-center gap-3 bg-white rounded-full shadow-[0_10px_30px_-6px_rgba(10,34,71,0.3)] border border-gray-100 pl-3 pr-5 py-2.5 hover:-translate-y-0.5 transition ${
             naoLidas > 0 ? 'animate-[pulse_2s_ease-in-out_infinite]' : ''
           }`}

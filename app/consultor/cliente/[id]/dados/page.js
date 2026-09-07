@@ -39,6 +39,20 @@ export default function DadosCliente() {
         return
       }
 
+      const user = sessionData.session.user
+
+      const { data: consultorData } = await supabase
+        .from('consultores')
+        .select('id')
+        .eq('auth_id', user.id)
+        .eq('ativo', true)
+        .maybeSingle()
+
+      if (!consultorData) {
+        router.push('/consultor/login')
+        return
+      }
+
       const { data: perfilData, error: perfilError } = await supabase
         .from('clientes')
         .select('*')
@@ -47,6 +61,12 @@ export default function DadosCliente() {
 
       if (perfilError) {
         setErro('Cliente não encontrado.')
+        setCarregando(false)
+        return
+      }
+
+      if (perfilData.consultor_id && perfilData.consultor_id !== consultorData.id) {
+        setErro('Acesso restrito: Este cliente já está sendo atendido por outro consultor.')
         setCarregando(false)
         return
       }

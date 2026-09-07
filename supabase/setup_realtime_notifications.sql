@@ -97,9 +97,8 @@ CREATE POLICY "Clientes inserem notificacoes" ON notificacoes_cliente
     )
   );
 
--- Email log: acesso total via service role (API routes), leitura para o próprio usuário
-CREATE POLICY "Service role email_log" ON email_log
-  FOR ALL USING (true);
+-- O service_role ignora o RLS nativamente, então não precisamos criar uma política "USING (true)" para ele
+-- A tabela email_log ficará restrita apenas para o backend.
 
 -- Preferências: cada usuário vê/edita suas próprias
 CREATE POLICY "Usuarios veem suas preferencias" ON preferencias_notificacao

@@ -145,17 +145,17 @@ async function dispararEmail({ auth_id, destinatario_email, destinatario_nome, t
     }
   }
 
-  // 2. Verificar debounce anti-spam (30 minutos)
+  // 2. Verificar debounce anti-spam (5 minutos)
   const { data: emailRecente } = await supabaseAdmin
     .from('email_log')
     .select('id')
     .eq('destinatario_email', destinatario_email)
     .eq('tipo', tipo)
-    .gte('enviado_em', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+    .gte('enviado_em', new Date(Date.now() - 5 * 60 * 1000).toISOString())
     .limit(1)
 
   if (emailRecente && emailRecente.length > 0) {
-    console.log(`Anti-spam: e-mail tipo '${tipo}' já enviado para ${destinatario_email} nos últimos 30min`)
+    console.log(`Anti-spam: e-mail tipo '${tipo}' já enviado para ${destinatario_email} nos últimos 5min`)
     return
   }
 
@@ -170,12 +170,17 @@ async function dispararEmail({ auth_id, destinatario_email, destinatario_nome, t
     const { Resend } = await import('resend')
     const resend = new Resend(resendKey)
 
-    await resend.emails.send({
+    const { error: resendError } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'CarWise <onboarding@resend.dev>',
       to: [destinatario_email],
       subject: `CarWise: ${titulo}`,
       html: gerarTemplateEmail({ nome: destinatario_nome, titulo, mensagem, link }),
     })
+
+    if (resendError) {
+      console.error('Erro retornado pela API do Resend:', resendError.message)
+      return
+    }
 
     // 4. Registrar no log
     await supabaseAdmin.from('email_log').insert([{

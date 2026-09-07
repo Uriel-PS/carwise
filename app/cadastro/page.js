@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabaseClient'
 import Link from 'next/link'
+import { IMaskInput } from 'react-imask'
 import { formatarCPF, validarCPF, formatarTelefone } from '../lib/validacoes'
 
 const PRIORIDADES_LABELS = [
@@ -236,8 +237,25 @@ export default function Cadastro() {
 function Label({ children, required }) {
   return <label className="block text-xs font-semibold text-gray-600 mb-1.5">{children}{required && <span className="text-red-400 ml-0.5">*</span>}</label>
 }
-function Input({ label, required, ...props }) {
-  return <div><Label required={required}>{label}</Label><input {...props} className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition" /></div>
+function Input({ label, required, maskProps, onAccept, ...props }) {
+  return (
+    <div>
+      <Label required={required}>{label}</Label>
+      {maskProps ? (
+        <IMaskInput 
+          {...maskProps}
+          {...props}
+          onAccept={onAccept}
+          className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition" 
+        />
+      ) : (
+        <input 
+          {...props} 
+          className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition" 
+        />
+      )}
+    </div>
+  )
 }
 function Select({ label, required, children, ...props }) {
   return <div><Label required={required}>{label}</Label><select {...props} className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 bg-white focus:border-blue-400 focus:outline-none transition">{children}</select></div>
@@ -276,11 +294,16 @@ function PassoDados({ pessoal, setPessoal, onNext }) {
           <Input 
             label="CPF" 
             required 
+            maskProps={{
+              mask: '000.000.000-00',
+              lazy: false,
+              placeholderChar: '_'
+            }}
             value={pessoal.cpf} 
-            onChange={e => {
-              set('cpf', formatarCPF(e.target.value))
+            onAccept={(value) => {
+              set('cpf', value)
               if (erroCPF) setErroCPF('')
-            }} 
+            }}
           />
           {erroCPF && <p className="text-red-500 text-xs mt-1">{erroCPF}</p>}
         </div>
@@ -288,7 +311,17 @@ function PassoDados({ pessoal, setPessoal, onNext }) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Input label="E-mail" type="email" required value={pessoal.email} onChange={e => set('email', e.target.value)} />
-        <Input label="Telefone / WhatsApp" required value={pessoal.telefone} onChange={e => set('telefone', formatarTelefone(e.target.value))} />
+        <Input 
+          label="Telefone / WhatsApp" 
+          required 
+          maskProps={{
+            mask: '(00) 00000-0000',
+            lazy: false,
+            placeholderChar: '_'
+          }}
+          value={pessoal.telefone} 
+          onAccept={(value) => set('telefone', value)} 
+        />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Select label="Estado civil" value={pessoal.estado_civil} onChange={e => set('estado_civil', e.target.value)}>

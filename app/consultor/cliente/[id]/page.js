@@ -95,6 +95,12 @@ const [propostas, setPropostas] = useState([])
         return
       }
 
+      if (perfilData.consultor_id && perfilData.consultor_id !== consultorData.id) {
+        setErro('Acesso restrito: Este cliente já está sendo atendido por outro consultor.')
+        setCarregando(false)
+        return
+      }
+
       setPerfil(perfilData)
 
       try {
@@ -260,10 +266,10 @@ const [propostas, setPropostas] = useState([])
 
     if (!error) {
       // Descobrir nome do veículo
-      const v = veiculos.find(veiculo => veiculo.id === veiculoEscolhido)
-      const nomeVeiculo = tipoProposta === 'estoque' && v
+      const v = veiculosEstoque.find(veiculo => veiculo.id === veiculoEscolhido)
+      const nomeVeiculo = origemProposta === 'estoque' && v
         ? `${v.marca} ${v.modelo}`
-        : tipoProposta === 'externa'
+        : origemProposta === 'externa'
           ? `${propostaExterna.marca_externa} ${propostaExterna.modelo_externa}`
           : 'um veículo'
 

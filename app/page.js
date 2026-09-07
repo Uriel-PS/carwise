@@ -1,196 +1,336 @@
-export default function Home() {
-  return (
-    <div className="bg-white text-gray-900">
+'use client'
 
-      {/* HEADER */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-[family-name:var(--font-display)] font-extrabold text-2xl text-blue-950">
-            <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+import { useEffect, useRef, useState } from 'react'
+import MeshBackground from './components/MeshBackground'
+
+/* ── Animated counter hook ── */
+function useCounter(target, duration = 2000) {
+  const [count, setCount] = useState(0)
+  const ref = useRef(null)
+  const started = useRef(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !started.current) {
+        started.current = true
+        const start = performance.now()
+        const tick = (now) => {
+          const progress = Math.min((now - start) / duration, 1)
+          const ease = 1 - Math.pow(1 - progress, 3)
+          setCount(Math.floor(ease * target))
+          if (progress < 1) requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      }
+    }, { threshold: 0.3 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [target, duration])
+
+  return [count, ref]
+}
+
+/* ── Scroll-reveal hook ── */
+function useReveal() {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.classList.add('visible')
+          obs.unobserve(el)
+        }
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+  return ref
+}
+
+export default function Home() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [headerScrolled, setHeaderScrolled] = useState(false)
+
+  // Scroll-reveal refs
+  const heroRef = useReveal()
+  const ecosystemHeaderRef = useReveal()
+  const ecosystemGridRef = useReveal()
+  const journeyHeaderRef = useReveal()
+  const journeyStepsRef = useReveal()
+  const commitmentRef = useReveal()
+  const plansHeaderRef = useReveal()
+  const plansGridRef = useReveal()
+  const iaRef = useReveal()
+  const footerRef = useReveal()
+
+  // Animated counters
+  const [compras, comprasRef] = useCounter(1200, 2200)
+  const [parceiras, parceirasRef] = useCounter(40, 1600)
+
+  // Header scroll effect
+  useEffect(() => {
+    const onScroll = () => setHeaderScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  return (
+    <div className="bg-white text-gray-900 overflow-x-hidden">
+
+      {/* ══════════ ANIMATED PARTICLE BACKGROUND ══════════ */}
+      <MeshBackground />
+
+      {/* ══════════ HEADER ══════════ */}
+      <header
+        className={`sticky top-0 z-50 transition-all duration-500 ${
+          headerScrolled
+            ? 'bg-white/95 backdrop-blur-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border-b border-gray-200/60'
+            : 'bg-transparent'
+        }`}
+      >
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-4 flex items-center justify-between">
+          <a href="/" className="flex items-center gap-2 font-[family-name:var(--font-display)] font-extrabold text-2xl text-blue-950 group">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 group-hover:scale-125 transition-transform duration-300"></span>
             CarWise
-          </div>
-          <nav className="hidden md:flex gap-8 text-sm text-gray-600 font-medium">
-            <a href="#como-funciona" className="hover:text-blue-950 transition">Como funciona</a>
-            <a href="#planos" className="hover:text-blue-950 transition">Planos</a>
-            <a href="#ia" className="hover:text-blue-950 transition">Inteligência</a>
+          </a>
+
+          {/* Desktop nav */}
+          <nav className="hidden md:flex gap-8 text-sm text-gray-500 font-medium">
+            {[
+              ['#como-funciona', 'Como funciona'],
+              ['#planos', 'Planos'],
+              ['#ia', 'Inteligência'],
+            ].map(([href, label]) => (
+              <a key={href} href={href} className="relative py-1 hover:text-blue-950 transition-colors duration-300 after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[2px] after:bg-blue-600 after:rounded-full after:transition-all after:duration-300 hover:after:w-full">
+                {label}
+              </a>
+            ))}
           </nav>
-          <div className="flex items-center gap-4">
-            <a href="/login" className="text-sm font-semibold text-gray-500 hover:text-blue-950 transition">Entrar</a>
-            <a href="/cadastro" className="bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-700 hover:-translate-y-0.5 transition">
+
+          <div className="flex items-center gap-3 sm:gap-4">
+            <a href="/login" className="text-sm font-semibold text-gray-500 hover:text-blue-950 transition-colors duration-300 hidden sm:block">
+              Entrar
+            </a>
+            <a href="/cadastro" className="btn-shimmer bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-600/25 transition-all duration-300">
               Começar agora
             </a>
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden flex flex-col gap-[5px] p-2 -mr-2"
+              aria-label="Menu"
+            >
+              <span className={`w-5 h-[2px] bg-blue-950 rounded-full transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-[7px]' : ''}`} />
+              <span className={`w-5 h-[2px] bg-blue-950 rounded-full transition-all duration-300 ${mobileMenuOpen ? 'opacity-0 scale-x-0' : ''}`} />
+              <span className={`w-5 h-[2px] bg-blue-950 rounded-full transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-[7px]' : ''}`} />
+            </button>
           </div>
+        </div>
+
+        {/* Mobile menu */}
+        <div className={`mobile-menu md:hidden border-t border-gray-100 bg-white/95 backdrop-blur-xl ${mobileMenuOpen ? 'open' : ''}`}>
+          <nav className="max-w-6xl mx-auto px-5 py-4 flex flex-col gap-3">
+            {[
+              ['#como-funciona', 'Como funciona'],
+              ['#planos', 'Planos'],
+              ['#ia', 'Inteligência'],
+              ['/login', 'Entrar'],
+            ].map(([href, label]) => (
+              <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-gray-600 hover:text-blue-950 py-2 transition-colors">
+                {label}
+              </a>
+            ))}
+          </nav>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="bg-gradient-to-b from-blue-50 via-blue-50/40 to-white">
-        <div className="max-w-6xl mx-auto px-6 py-24 grid md:grid-cols-2 gap-16 items-center">
-          <div>
-            <div className="flex items-center gap-2.5 text-xs font-mono text-blue-600 uppercase tracking-widest mb-5">
-              <span className="w-5 h-px bg-blue-600"></span>
-              Consultoria automotiva pessoal
-            </div>
-            <h1 className="font-[family-name:var(--font-display)] font-bold text-5xl md:text-6xl leading-[1.02] tracking-tight text-blue-950 mb-6">
-              Compre um carro com <span className="text-blue-600">quem entende</span>, não sozinho.
-            </h1>
-            <p className="text-gray-500 text-lg mb-9 max-w-md leading-relaxed">
-              Um consultor dedicado cuida da busca, da negociação, da vistoria e da documentação.
-              Você só escolhe o carro — e sabe exatamente quanto vai gastar antes de assinar qualquer coisa.
-            </p>
-            <div className="flex gap-3.5 flex-wrap mb-9">
-              <a href="/cadastro" className="bg-blue-600 text-white font-semibold px-7 py-3.5 rounded-lg hover:bg-blue-700 hover:-translate-y-0.5 transition shadow-sm">
-                Falar com um consultor
-              </a>
-              <a href="#planos" className="border border-gray-300 text-blue-950 font-semibold px-7 py-3.5 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition">
-                Ver planos e preços
-              </a>
-            </div>
-            <div className="flex gap-7 flex-wrap text-sm text-gray-400">
-              <span><strong className="text-blue-950 font-mono font-medium">1.200+</strong> compras acompanhadas</span>
-              <span><strong className="text-blue-950 font-mono font-medium">40+</strong> concessionárias parceiras</span>
-            </div>
+      {/* ══════════ HERO ══════════ */}
+      <section className="relative overflow-hidden" style={{ background: 'transparent' }}>
+        <div ref={heroRef} className="reveal max-w-3xl mx-auto px-5 sm:px-6 py-20 sm:py-28 md:py-32 text-center relative z-10">
+          <div className="flex items-center justify-center gap-2.5 text-xs font-mono text-blue-600 uppercase tracking-widest mb-5">
+            <span className="w-5 h-px bg-blue-600" />
+            Consultoria automotiva pessoal
+            <span className="w-5 h-px bg-blue-600" />
           </div>
 
-          {/* Checklist card */}
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-[0_30px_60px_-24px_rgba(10,34,71,0.18)] p-7">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
-              <div>
-                <div className="font-[family-name:var(--font-display)] font-semibold text-xl text-blue-950">Honda HR-V 2022</div>
-                <div className="text-xs font-mono text-gray-400 tracking-wide">VISTORIA #4471 · JOINVILLE, SC</div>
-              </div>
-              <span className="flex items-center gap-1.5 text-xs font-mono bg-green-50 text-green-600 px-3 py-1.5 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                em análise
-              </span>
-            </div>
-            <ul className="space-y-1 text-sm">
-              {['Motor sem vazamentos', 'Câmbio funcionando', 'Pintura original', 'Sem colisões na estrutura', 'Documentação regular'].map((item) => (
-                <li key={item} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-blue-50/60 transition">
-                  <span className="w-[18px] h-[18px] rounded-[5px] bg-blue-600 flex items-center justify-center text-white text-[10px] shrink-0">
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </span>
-                  {item}
-                </li>
-              ))}
-              {['Restrição financeira', 'Recall pendente'].map((item) => (
-                <li key={item} className="flex items-center gap-3 py-2 px-2 text-gray-400">
-                  <span className="w-[18px] h-[18px] rounded-[5px] border-[1.5px] border-gray-300 shrink-0"></span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <div className="border-t border-gray-100 mt-4 pt-4 flex justify-between items-center">
-              <div className="text-xs font-mono text-gray-400">
-                Confiabilidade: <strong className="text-blue-700 font-medium">8.7/10</strong>
-              </div>
-              <div className="flex -space-x-2">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-blue-900 border-2 border-white flex items-center justify-center text-[10px] font-mono text-white font-medium">RC</div>
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-600 to-blue-900 border-2 border-white flex items-center justify-center text-[10px] font-mono text-white font-medium">MV</div>
-              </div>
-            </div>
+          <h1 className="font-[family-name:var(--font-display)] font-bold text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight text-blue-950 mb-6">
+            Compre um carro com{' '}
+            <span className="gradient-text">quem entende</span>, não sozinho.
+          </h1>
+
+          <p className="text-gray-500 text-base sm:text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+            Um consultor dedicado cuida da busca, da negociação, da vistoria e da documentação.
+            Você só escolhe o carro, e sabe exatamente quanto vai gastar antes de assinar qualquer coisa.
+          </p>
+
+          <div className="flex gap-3.5 flex-wrap justify-center mb-10">
+            <a href="/cadastro" className="btn-shimmer bg-blue-600 text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-blue-700 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-600/25 transition-all duration-300 shadow-sm">
+              Falar com um consultor
+            </a>
+            <a href="#planos" className="border border-gray-300 text-blue-950 font-semibold px-7 py-3.5 rounded-xl hover:border-blue-400 hover:bg-blue-50 hover:-translate-y-0.5 transition-all duration-300">
+              Ver planos e preços
+            </a>
+          </div>
+
+          {/* Animated stats */}
+          <div className="flex gap-8 sm:gap-12 flex-wrap justify-center text-sm text-gray-400">
+            <span ref={comprasRef}>
+              <strong className="text-blue-950 font-mono font-semibold text-lg tabular-nums">{compras.toLocaleString('pt-BR')}+</strong>
+              <br className="sm:hidden" />{' '}compras acompanhadas
+            </span>
+            <span ref={parceirasRef}>
+              <strong className="text-blue-950 font-mono font-semibold text-lg tabular-nums">{parceiras}+</strong>
+              <br className="sm:hidden" />{' '}concessionárias parceiras
+            </span>
           </div>
         </div>
       </section>
 
-      {/* 4 PONTAS DO ECOSSISTEMA */}
-      <section className="bg-blue-50/40 border-y border-gray-200 py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="max-w-xl mb-14">
+      {/* ══════════ 4 PONTAS DO ECOSSISTEMA ══════════ */}
+      <section className="section-glass-alt border-y border-gray-200/60 py-20 sm:py-24 relative z-[1]">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+          <div ref={ecosystemHeaderRef} className="reveal max-w-xl mb-14">
             <div className="text-xs font-mono text-amber-600 uppercase tracking-widest mb-3">O ecossistema</div>
-            <h2 className="font-[family-name:var(--font-display)] font-bold text-4xl text-blue-950 mb-4 leading-tight">Um serviço, quatro pontas conectadas</h2>
-            <p className="text-gray-500 text-base">Cliente, concessionária, vistoria e seguradora — cada um resolve um problema diferente dentro da mesma jornada de compra.</p>
+            <h2 className="font-[family-name:var(--font-display)] font-bold text-3xl sm:text-4xl text-blue-950 mb-4 leading-tight">Um serviço, quatro pontas conectadas</h2>
+            <p className="text-gray-500 text-base">Cliente, concessionária, vistoria e seguradora: cada um resolve um problema diferente dentro da mesma jornada de compra.</p>
           </div>
 
-          <div className="grid md:grid-cols-4 gap-px bg-gray-200 border border-gray-200 rounded-2xl overflow-hidden">
+          <div ref={ecosystemGridRef} className="stagger-children grid sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5">
             {[
               {
-                title: 'Consultoria para o comprador', desc: 'Planos de assinatura para busca, negociação e acompanhamento completo da compra.', tag: 'receita recorrente',
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.5 0 4.5-2 4.5-4.5S14.5 3 12 3 7.5 5 7.5 7.5 9.5 12 12 12z" stroke="#2B5FE0" strokeWidth="1.6"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke="#2B5FE0" strokeWidth="1.6" strokeLinecap="round"/></svg>,
-                bg: 'bg-blue-50',
+                title: 'Consultoria para o comprador',
+                desc: 'Planos de assinatura para busca, negociação e acompanhamento completo da compra.',
+                icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.5 0 4.5-2 4.5-4.5S14.5 3 12 3 7.5 5 7.5 7.5 9.5 12 12 12z" stroke="#2B5FE0" strokeWidth="1.6"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke="#2B5FE0" strokeWidth="1.6" strokeLinecap="round"/></svg>,
+                gradient: 'from-blue-500/10 to-blue-600/5',
+                iconBg: 'bg-blue-100',
               },
               {
-  title: 'Concessionárias parceiras', desc: 'Rede de concessionárias parceiras que agiliza sua escolha, com opções sempre atualizadas para o carro certo aparecer mais rápido.',
-  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6" stroke="#B07830" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
-  bg: 'bg-amber-50',
-},
-              {
-                title: 'Avaliação mecânica', desc: 'Rede de oficinas parceiras credenciadas realiza a inspeção técnica completa.', tag: 'serviço avulso',
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 01-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 015.4-5.4l-3 3-2-2 3-3z" stroke="#3F9E6D" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
-                bg: 'bg-green-50',
+                title: 'Concessionárias parceiras',
+                desc: 'Rede que agiliza sua escolha, com opções sempre atualizadas para o carro certo aparecer mais rápido.',
+                icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6" stroke="#B07830" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
+                gradient: 'from-amber-500/10 to-amber-600/5',
+                iconBg: 'bg-amber-100',
               },
               {
-                title: 'Parcerias financeiras', desc: 'Seguro e financiamento cotados dentro do app, com comissão transparente informada ao cliente.', tag: 'comissão · opt-in',
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="#0A2247" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
-                bg: 'bg-slate-100',
+                title: 'Avaliação mecânica',
+                desc: 'Rede de oficinas parceiras credenciadas realiza a inspeção técnica completa.',
+                icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 01-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 015.4-5.4l-3 3-2-2 3-3z" stroke="#3F9E6D" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
+                gradient: 'from-green-500/10 to-green-600/5',
+                iconBg: 'bg-green-100',
+              },
+              {
+                title: 'Parcerias financeiras',
+                desc: 'Seguro e financiamento cotados dentro do app, com comissão transparente informada ao cliente.',
+                icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="#0A2247" strokeWidth="1.6" strokeLinejoin="round"/></svg>,
+                gradient: 'from-slate-500/10 to-slate-600/5',
+                iconBg: 'bg-slate-100',
               },
             ].map((s) => (
-              <div key={s.title} className="bg-white p-7 hover:bg-blue-50/40 transition">
-                <div className={`w-10 h-10 rounded-[10px] ${s.bg} flex items-center justify-center mb-5`}>{s.icon}</div>
+              <div
+                key={s.title}
+                className={`card-hover bg-gradient-to-br ${s.gradient} bg-white rounded-2xl p-7 border border-gray-100`}
+              >
+                <div className={`w-12 h-12 rounded-xl ${s.iconBg} flex items-center justify-center mb-5`}>
+                  {s.icon}
+                </div>
                 <h3 className="font-[family-name:var(--font-display)] font-semibold text-lg text-blue-950 mb-2">{s.title}</h3>
-                <p className="text-sm text-gray-500 mb-5 leading-relaxed">{s.desc}</p>
+                <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* JORNADA - 6 PASSOS */}
-      <section id="como-funciona" className="py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="max-w-xl mb-16">
+      {/* ══════════ JORNADA - 6 PASSOS ══════════ */}
+      <section id="como-funciona" className="section-glass py-20 sm:py-24 relative z-[1]">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+          <div ref={journeyHeaderRef} className="reveal max-w-xl mb-16">
             <div className="text-xs font-mono text-amber-600 uppercase tracking-widest mb-3">Jornada do cliente</div>
-            <h2 className="font-[family-name:var(--font-display)] font-bold text-4xl text-blue-950 mb-4 leading-tight">Da entrevista inicial até a entrega das chaves</h2>
-            <p className="text-gray-500 text-base">Cada etapa fica visível para você em tempo real — sem ligações perdidas ou "vou verificar e te retorno".</p>
+            <h2 className="font-[family-name:var(--font-display)] font-bold text-3xl sm:text-4xl text-blue-950 mb-4 leading-tight">Da entrevista inicial até a entrega das chaves</h2>
+            <p className="text-gray-500 text-base">Cada etapa fica visível para você em tempo real, sem ligações perdidas ou &quot;vou verificar e te retorno&quot;.</p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-y-12">
+          <div ref={journeyStepsRef} className="stagger-children grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6 sm:gap-4">
             {[
-              'Perfil e busca', 'Contato com o consultor', 'Negociação e vistoria',
-	      'Test drive', 'Fechamento e contratos', 'Entrega e pós-venda',
-            ].map((step, i) => (
-              <div key={step} className="flex items-start">
-                <div className="text-center w-[150px] px-1">
-                  <div className="w-[38px] h-[38px] rounded-full bg-blue-600 text-white font-[family-name:var(--font-display)] font-bold text-base flex items-center justify-center mx-auto mb-4 shadow-[0_0_0_5px_rgba(43,95,224,0.1)]">
+              ['Perfil e busca', '🔍'],
+              ['Contato com o consultor', '💬'],
+              ['Negociação e vistoria', '🔧'],
+              ['Test drive', '🚗'],
+              ['Fechamento e contratos', '📋'],
+              ['Entrega e pós-venda', '🔑'],
+            ].map(([step, emoji], i) => (
+              <div key={step} className="step-connector text-center group">
+                <div className="relative mx-auto mb-4">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-white font-[family-name:var(--font-display)] font-bold text-lg flex items-center justify-center mx-auto shadow-lg shadow-blue-600/20 group-hover:shadow-blue-600/40 group-hover:scale-110 transition-all duration-300">
                     {i + 1}
                   </div>
-                  <h4 className="font-[family-name:var(--font-display)] font-semibold text-[16.5px] text-blue-950 mb-1.5">{step}</h4>
                 </div>
-                {i < 5 && <span className="text-gray-300 text-2xl font-light mx-1 pt-1.5 hidden md:block">›</span>}
+                <div className="text-xl mb-2">{emoji}</div>
+                <h4 className="font-[family-name:var(--font-display)] font-semibold text-[15px] sm:text-base text-blue-950 leading-snug">{step}</h4>
               </div>
             ))}
           </div>
 
-          <div className="mt-16 bg-gradient-to-br from-blue-950 to-blue-800 rounded-2xl p-9 flex items-center gap-6 flex-col md:flex-row text-center md:text-left">
-            <div className="w-13 h-13 rounded-xl bg-white/10 flex items-center justify-center shrink-0" style={{ width: 52, height: 52 }}>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round"/><path d="M9 12l2 2 4-4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <div ref={commitmentRef} className="reveal from-scale mt-16 bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800 rounded-2xl p-8 sm:p-9 flex items-center gap-6 flex-col md:flex-row text-center md:text-left relative overflow-hidden">
+            {/* Subtle glow */}
+            <div className="absolute -top-20 -right-20 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl" />
+            <div className="w-14 h-14 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center shrink-0 relative">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round"/><path d="M9 12l2 2 4-4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
-            <div>
+            <div className="relative">
               <h4 className="text-white font-[family-name:var(--font-display)] font-semibold text-xl mb-1.5">Nosso compromisso com você</h4>
-              <p className="text-blue-100/80 text-sm max-w-xl">Preço honesto, atendimento respeitoso e um processo tranquilo do início ao fim. Estamos aqui antes, durante e depois da compra.</p>
+              <p className="text-blue-100/70 text-sm max-w-xl leading-relaxed">Preço honesto, atendimento respeitoso e um processo tranquilo do início ao fim. Estamos aqui antes, durante e depois da compra.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* PLANOS */}
-      <section id="planos" className="py-24 bg-blue-50/30 border-y border-gray-200">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="max-w-xl mb-14">
+      {/* ══════════ PLANOS ══════════ */}
+      <section id="planos" className="section-glass-alt py-20 sm:py-24 border-y border-gray-200/60 relative z-[1]">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+          <div ref={plansHeaderRef} className="reveal max-w-xl mb-14">
             <div className="text-xs font-mono text-amber-600 uppercase tracking-widest mb-3">Planos para o cliente final</div>
-            <h2 className="font-[family-name:var(--font-display)] font-bold text-4xl text-blue-950 mb-4 leading-tight">Escolha o quanto quer se envolver</h2>
+            <h2 className="font-[family-name:var(--font-display)] font-bold text-3xl sm:text-4xl text-blue-950 mb-4 leading-tight">Escolha o quanto quer se envolver</h2>
             <p className="text-gray-500 text-base">Do acompanhamento pontual ao serviço completo, em que você só assina o contrato no final.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5">
+          <div ref={plansGridRef} className="stagger-children grid sm:grid-cols-2 md:grid-cols-3 gap-5">
             {[
-              { name: 'Básico', price: 'R$199', desc: 'Para quem já sabe o que quer e precisa de apoio pontual.', features: ['Pesquisa de mercado', 'Indicação de veículos', 'Análise documental'], featured: false },
-              { name: 'Premium', price: 'R$499', desc: 'Acompanhamento de negociação e vistoria completa.', features: ['Pesquisa completa', 'Negociação conduzida pelo consultor', 'Vistoria e avaliação mecânica', 'Acompanhamento presencial'], featured: true },
-              { name: 'Concierge', price: 'R$999', desc: 'Você escolhe o carro. O resto é com a gente.', features: ['Tudo do plano Premium', 'Test drive agendado e conduzido', 'Transferência e documentação completa', 'Suporte pós-venda'], featured: false },
+              {
+                name: 'Básico', price: 'R$199',
+                desc: 'Para quem já sabe o que quer e precisa de apoio pontual.',
+                features: ['Pesquisa de mercado', 'Indicação de veículos', 'Análise documental'],
+                featured: false,
+              },
+              {
+                name: 'Premium', price: 'R$499',
+                desc: 'Acompanhamento de negociação e vistoria completa.',
+                features: ['Pesquisa completa', 'Negociação conduzida pelo consultor', 'Vistoria e avaliação mecânica', 'Acompanhamento presencial'],
+                featured: true,
+              },
+              {
+                name: 'Concierge', price: 'R$999',
+                desc: 'Você escolhe o carro. O resto é com a gente.',
+                features: ['Tudo do plano Premium', 'Test drive agendado e conduzido', 'Transferência e documentação completa', 'Suporte pós-venda'],
+                featured: false,
+              },
             ].map((p) => (
-              <div key={p.name} className={`relative bg-white rounded-2xl p-8 border flex flex-col ${p.featured ? 'border-blue-600 shadow-lg' : 'border-gray-200'}`}>
+              <div
+                key={p.name}
+                className={`plan-shine card-hover relative bg-white rounded-2xl p-8 border flex flex-col ${
+                  p.featured
+                    ? 'border-blue-600 shadow-xl shadow-blue-600/10 md:scale-105'
+                    : 'border-gray-200'
+                }`}
+              >
                 {p.featured && (
-                  <div className="absolute -top-px right-6 text-[10.5px] font-mono font-medium bg-blue-600 text-white px-3 py-1 rounded-b-md">
+                  <div className="absolute -top-px right-6 text-[10.5px] font-mono font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3.5 py-1.5 rounded-b-lg">
                     MAIS ESCOLHIDO
                   </div>
                 )}
@@ -205,7 +345,14 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <a href="/cadastro" className={`block text-center rounded-lg py-3.5 font-semibold text-sm transition ${p.featured ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border border-gray-300 text-blue-950 hover:border-blue-400 hover:bg-blue-50'}`}>
+                <a
+                  href="/cadastro"
+                  className={`btn-shimmer block text-center rounded-xl py-3.5 font-semibold text-sm transition-all duration-300 ${
+                    p.featured
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/25'
+                      : 'border border-gray-300 text-blue-950 hover:border-blue-400 hover:bg-blue-50'
+                  }`}
+                >
                   Escolher {p.name}
                 </a>
               </div>
@@ -214,76 +361,58 @@ export default function Home() {
         </div>
       </section>
 
-      {/* IA */}
-      <section id="ia" className="py-24">
-        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
-          <div>
-            <div className="text-xs font-mono text-amber-600 uppercase tracking-widest mb-3">Inteligência artificial</div>
-            <h2 className="font-[family-name:var(--font-display)] font-bold text-4xl text-blue-950 mb-5 leading-tight">A IA prepara o terreno antes do consultor falar com você</h2>
-            <p className="text-gray-500 text-base mb-6 leading-relaxed">
-              Antes de qualquer indicação, o sistema busca primeiro no estoque das concessionárias parceiras — e só depois expande para o mercado aberto. Também cruza preço FIPE, consumo e custo de manutenção.
-            </p>
-            <ul className="space-y-3">
-              {['Prioridade para veículos cadastrados por parceiros', 'Simulação de parcela ideal e comprometimento de renda', 'Nota de confiabilidade por modelo'].map((item) => (
-                <li key={item} className="flex gap-2.5 text-[14.5px] text-gray-600">
-                  <span className="text-blue-600 shrink-0">✓</span> {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 font-mono text-sm shadow-sm">
-            <div className="text-gray-400 border-b border-gray-100 pb-3.5 mb-3.5">
-              <strong className="text-blue-950 font-medium">Perfil buscado:</strong> SUV automático · até R$ 120.000
-            </div>
+      {/* ══════════ IA ══════════ */}
+      <section id="ia" className="section-glass py-20 sm:py-24 relative z-[1]">
+        <div ref={iaRef} className="reveal max-w-3xl mx-auto px-5 sm:px-6 text-center">
+          <div className="text-xs font-mono text-amber-600 uppercase tracking-widest mb-3">Inteligência artificial</div>
+          <h2 className="font-[family-name:var(--font-display)] font-bold text-3xl sm:text-4xl text-blue-950 mb-5 leading-tight">A IA prepara o terreno antes do consultor falar com você</h2>
+          <p className="text-gray-500 text-base mb-8 max-w-xl mx-auto leading-relaxed">
+            Antes de qualquer indicação, o sistema busca primeiro no estoque das concessionárias parceiras, e só depois expande para o mercado aberto. Também cruza preço FIPE, consumo e custo de manutenção.
+          </p>
+          <div className="inline-flex flex-col items-start gap-4 text-left">
             {[
-              ['Honda HR-V EXL 2022', '9.4', true],
-              ['Jeep Renegade Longitude 2023', '9.0', true],
-              ['Nissan Kicks SV 2021', '8.6', true],
-              ['Toyota Corolla Cross 2022', '7.9', false],
-            ].map(([car, score, partner]) => (
-              <div key={car} className="flex justify-between items-center py-2.5 border-b border-dashed border-gray-100 last:border-0">
-                <span className="text-gray-800">
-                  {car}{' '}
-                  {partner
-                    ? <span className="text-amber-600 text-[10px]">● AutoPrime</span>
-                    : <span className="text-gray-400 text-[10px]">mercado aberto</span>}
-                </span>
-                <span className="text-green-600 font-medium">{score}</span>
+              ['Prioridade para veículos cadastrados por parceiros', '🏢'],
+              ['Simulação de parcela ideal e comprometimento de renda', '💰'],
+              ['Nota de confiabilidade por modelo', '⭐'],
+            ].map(([item, emoji]) => (
+              <div key={item} className="flex items-center gap-3 text-[14.5px] text-gray-600 bg-blue-50/60 px-5 py-3 rounded-xl hover:bg-blue-50 transition-colors duration-300 w-full">
+                <span className="text-lg">{emoji}</span>
+                {item}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-gray-200 bg-blue-50/30 py-16">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-10 mb-10">
-            <div>
+      {/* ══════════ FOOTER ══════════ */}
+      <footer className="border-t border-gray-200/60 section-glass py-14 sm:py-16 relative z-[1]">
+        <div ref={footerRef} className="reveal max-w-6xl mx-auto px-5 sm:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 mb-10">
+            <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 font-[family-name:var(--font-display)] font-extrabold text-xl text-blue-950 mb-3">
                 <span className="w-2 h-2 rounded-full bg-blue-600"></span>
                 CarWise
               </div>
-              <p className="text-[13.5px] text-gray-400 max-w-xs leading-relaxed">Consultoria automotiva pessoal — da escolha do carro à entrega das chaves.</p>
+              <p className="text-[13.5px] text-gray-400 max-w-xs leading-relaxed">Consultoria automotiva pessoal, da escolha do carro à entrega das chaves.</p>
             </div>
             <div>
               <h5 className="text-xs uppercase text-gray-400 font-semibold tracking-wide mb-4">Cliente</h5>
-              <a href="#planos" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Planos</a>
-              <a href="#como-funciona" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Como funciona</a>
-              <a href="#ia" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Inteligência artificial</a>
+              <a href="#planos" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Planos</a>
+              <a href="#como-funciona" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Como funciona</a>
+              <a href="#ia" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Inteligência artificial</a>
             </div>
             <div>
               <h5 className="text-xs uppercase text-gray-400 font-semibold tracking-wide mb-4">Parceiros</h5>
-              <a href="/contato?assunto=concessionaria" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Seja concessionária parceira</a>
-              <a href="/contato?assunto=oficina" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Credenciar oficina</a>
-              <a href="/contato?assunto=seguradora" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Seguradoras e bancos</a>
+              <a href="/contato?assunto=concessionaria" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Seja concessionária parceira</a>
+              <a href="/contato?assunto=oficina" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Credenciar oficina</a>
+              <a href="/contato?assunto=seguradora" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Seguradoras e bancos</a>
             </div>
             <div>
               <h5 className="text-xs uppercase text-gray-400 font-semibold tracking-wide mb-4">Empresa</h5>
-	      <a href="/quem-somos" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Sobre</a>
-              <a href="/contato?assunto=trabalhe" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Trabalhe conosco</a>
-              <a href="/contato?assunto=outro" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Contato</a>
-              <a href="/acesso-interno" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5">Acesso interno</a>
+              <a href="/quem-somos" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Sobre</a>
+              <a href="/contato?assunto=trabalhe" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Trabalhe conosco</a>
+              <a href="/contato?assunto=outro" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Contato</a>
+              <a href="/acesso-interno" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Acesso interno</a>
             </div>
           </div>
           <div className="border-t border-gray-200 pt-6 text-xs text-gray-400 flex justify-between flex-wrap gap-2">

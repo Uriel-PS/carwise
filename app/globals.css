@@ -15,6 +15,23 @@ body {
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Section glass backgrounds (particles visible through) ── */
+.section-glass {
+  position: relative;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(2px);
+}
+.section-glass-alt {
+  position: relative;
+  background: rgba(239, 246, 255, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+/* ── Existing animation ── */
 @keyframes slideUp {
   from {
     transform: translateY(100%);
@@ -23,5 +40,244 @@ body {
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* ── Scroll-triggered reveal animations ── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-18px) rotate(3deg); }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes counter-fill {
+  from { width: 0%; }
+  to { width: var(--fill-width, 100%); }
+}
+
+@keyframes draw-line {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent; }
+  50% { border-color: #2B5FE0; }
+}
+
+/* ── Reveal utility classes ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.from-left {
+  transform: translateX(-40px);
+}
+.reveal.from-right {
+  transform: translateX(40px);
+}
+.reveal.from-scale {
+  transform: scale(0.92);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0) translateX(0) scale(1);
+}
+
+/* Staggered children */
+.stagger-children > * {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.stagger-children.visible > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: none; }
+.stagger-children.visible > *:nth-child(2) { transition-delay: 100ms; opacity: 1; transform: none; }
+.stagger-children.visible > *:nth-child(3) { transition-delay: 200ms; opacity: 1; transform: none; }
+.stagger-children.visible > *:nth-child(4) { transition-delay: 300ms; opacity: 1; transform: none; }
+.stagger-children.visible > *:nth-child(5) { transition-delay: 400ms; opacity: 1; transform: none; }
+.stagger-children.visible > *:nth-child(6) { transition-delay: 500ms; opacity: 1; transform: none; }
+
+
+/* ── Animated gradient text ── */
+.gradient-text {
+  background: linear-gradient(135deg, #2B5FE0 0%, #1E40AF 25%, #7C3AED 50%, #2B5FE0 75%, #1E40AF 100%);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 6s ease infinite;
+}
+
+/* ── Floating card hover ── */
+.card-hover {
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.card-hover:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 48px -12px rgba(10, 34, 71, 0.15);
+}
+
+/* ── Step connector line ── */
+.step-connector {
+  position: relative;
+}
+.step-connector::after {
+  content: '';
+  position: absolute;
+  top: 19px;
+  left: calc(50% + 24px);
+  width: calc(100% - 48px);
+  height: 2px;
+  background: linear-gradient(90deg, #2B5FE0, #93C5FD);
+  opacity: 0.3;
+}
+.step-connector:last-child::after {
+  display: none;
+}
+
+/* ── Animated counter ── */
+.counter-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #2B5FE0, #60A5FA);
+  animation: counter-fill 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ── Shimmer button effect ── */
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.6s;
+}
+.btn-shimmer:hover::after {
+  left: 100%;
+}
+
+/* ── Mobile menu ── */
+.mobile-menu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.3s;
+  opacity: 0;
+}
+.mobile-menu.open {
+  max-height: 300px;
+  opacity: 1;
+}
+
+/* ── Plan card shine ── */
+.plan-shine {
+  position: relative;
+  overflow: hidden;
+}
+.plan-shine::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -75%;
+  width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  transform: skewX(-15deg);
+  transition: left 0.8s;
+}
+.plan-shine:hover::before {
+  left: 125%;
+}
+
+/* ── Responsive adjustments ── */
+@media (max-width: 768px) {
+  .step-connector::after {
+    display: none;
   }
 }

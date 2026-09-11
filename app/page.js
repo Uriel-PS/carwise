@@ -59,6 +59,8 @@ export default function Home() {
 
   // Scroll-reveal refs
   const heroRef = useReveal()
+  const doresRef = useReveal()
+  const doresListRef = useReveal()
   const ecosystemHeaderRef = useReveal()
   const ecosystemGridRef = useReveal()
   const journeyHeaderRef = useReveal()
@@ -66,7 +68,10 @@ export default function Home() {
   const commitmentRef = useReveal()
   const plansHeaderRef = useReveal()
   const plansGridRef = useReveal()
-  const iaRef = useReveal()
+  const plansRoiRef = useReveal()
+  const techRef = useReveal()
+  const transparenciaHeaderRef = useReveal()
+  const transparenciaGridRef = useReveal()
   const footerRef = useReveal()
 
   // Animated counters
@@ -105,7 +110,7 @@ export default function Home() {
             {[
               ['#como-funciona', 'Como funciona'],
               ['#planos', 'Planos'],
-              ['#ia', 'Inteligência'],
+              ['#transparencia', 'Transparência'],
             ].map(([href, label]) => (
               <a key={href} href={href} className="relative py-1 hover:text-blue-950 transition-colors duration-300 after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[2px] after:bg-blue-600 after:rounded-full after:transition-all after:duration-300 hover:after:w-full">
                 {label}
@@ -139,7 +144,7 @@ export default function Home() {
             {[
               ['#como-funciona', 'Como funciona'],
               ['#planos', 'Planos'],
-              ['#ia', 'Inteligência'],
+              ['#transparencia', 'Transparência'],
               ['/login', 'Entrar'],
             ].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-gray-600 hover:text-blue-950 py-2 transition-colors">
@@ -160,13 +165,12 @@ export default function Home() {
           </div>
 
           <h1 className="font-[family-name:var(--font-display)] font-bold text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight text-blue-950 mb-6">
-            Compre um carro com{' '}
-            <span className="gradient-text">quem entende</span>, não sozinho.
+            Você não precisa entender de carros.{' '}
+            <span className="gradient-text">A CarWise entende por você.</span>
           </h1>
 
           <p className="text-gray-500 text-base sm:text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-            Um consultor dedicado cuida da busca, da negociação, da vistoria e da documentação.
-            Você só escolhe o carro, e sabe exatamente quanto vai gastar antes de assinar qualquer coisa.
+            Nós pesquisamos, comparamos, negociamos e acompanhamos a compra para que você tome uma decisão segura e consciente.
           </p>
 
           <div className="flex gap-3.5 flex-wrap justify-center mb-10">
@@ -188,6 +192,46 @@ export default function Home() {
               <strong className="text-blue-950 font-mono font-semibold text-lg tabular-nums">{parceiras}+</strong>
               <br className="sm:hidden" />{' '}concessionárias parceiras
             </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════ DORES DO COMPRADOR ══════════ */}
+      <section className="relative z-[1] bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800 py-20 sm:py-24 overflow-hidden">
+        {/* Decorative glow */}
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-blue-400/8 rounded-full blur-3xl" />
+        <div className="max-w-3xl mx-auto px-5 sm:px-6 text-center relative">
+          <div ref={doresRef} className="reveal mb-12">
+            <h2 className="font-[family-name:var(--font-display)] font-bold text-3xl sm:text-4xl text-white mb-4 leading-tight">
+              Comprar um carro parece simples.<br />
+              <span className="text-blue-300">Até você começar.</span>
+            </h2>
+          </div>
+
+          <div ref={doresListRef} className="stagger-children inline-flex flex-col items-start gap-3 text-left mb-12">
+            {[
+              'Será que esse preço está bom?',
+              'Será que esse carro tem algum problema?',
+              'Será que a concessionária está cobrando demais?',
+              'Será que o financiamento está realmente vantajoso?',
+              'Será que a documentação está correta?',
+              'Será que existe uma opção melhor pelo mesmo dinheiro?',
+            ].map((dor) => (
+              <div key={dor} className="flex items-center gap-3 text-[15px] sm:text-base text-blue-100/80 bg-white/5 backdrop-blur-sm px-5 py-3.5 rounded-xl border border-white/10 w-full hover:bg-white/10 transition-colors duration-300">
+                <span className="text-red-400 text-lg shrink-0">✕</span>
+                {dor}
+              </div>
+            ))}
+          </div>
+
+          <div className="reveal visible">
+            <p className="text-xl sm:text-2xl font-[family-name:var(--font-display)] font-semibold text-white mb-6">
+              É exatamente aí que entra a <span className="text-blue-300">CarWise</span>.
+            </p>
+            <a href="/cadastro" className="btn-shimmer inline-block bg-white text-blue-950 font-semibold px-7 py-3.5 rounded-xl hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20 transition-all duration-300 shadow-sm">
+              Falar com um consultor
+            </a>
           </div>
         </div>
       </section>
@@ -358,26 +402,83 @@ export default function Home() {
               </div>
             ))}
           </div>
+
+          {/* ROI da consultoria */}
+          <div ref={plansRoiRef} className="reveal from-scale mt-10 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-7 sm:p-8 border border-green-200/60 flex items-center gap-5 flex-col sm:flex-row text-center sm:text-left">
+            <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div>
+              <h4 className="font-[family-name:var(--font-display)] font-semibold text-lg text-blue-950 mb-1.5">A consultoria se paga na negociação</h4>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-xl">Nosso consultor negocia diretamente com a concessionária para conseguir o melhor preço. Na maioria dos casos, a economia na negociação supera o valor investido no plano — e você ainda ganha a segurança de uma compra bem feita.</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ══════════ IA ══════════ */}
-      <section id="ia" className="section-glass py-20 sm:py-24 relative z-[1]">
-        <div ref={iaRef} className="reveal max-w-3xl mx-auto px-5 sm:px-6 text-center">
-          <div className="text-xs font-mono text-amber-600 uppercase tracking-widest mb-3">Inteligência artificial</div>
-          <h2 className="font-[family-name:var(--font-display)] font-bold text-3xl sm:text-4xl text-blue-950 mb-5 leading-tight">A IA prepara o terreno antes do consultor falar com você</h2>
+      {/* ══════════ TECNOLOGIA ══════════ */}
+      <section id="tecnologia" className="section-glass py-20 sm:py-24 relative z-[1]">
+        <div ref={techRef} className="reveal max-w-3xl mx-auto px-5 sm:px-6 text-center">
+          <div className="text-xs font-mono text-amber-600 uppercase tracking-widest mb-3">Tecnologia CarWise</div>
+          <h2 className="font-[family-name:var(--font-display)] font-bold text-3xl sm:text-4xl text-blue-950 mb-5 leading-tight">Tecnologia que encontra as melhores opções para você</h2>
           <p className="text-gray-500 text-base mb-8 max-w-xl mx-auto leading-relaxed">
-            Antes de qualquer indicação, o sistema busca primeiro no estoque das concessionárias parceiras, e só depois expande para o mercado aberto. Também cruza preço FIPE, consumo e custo de manutenção.
+            A CarWise cruza estoque, preço de mercado, FIPE, custos e características do veículo para ajudar nosso consultor a encontrar as melhores oportunidades para o seu perfil.
           </p>
           <div className="inline-flex flex-col items-start gap-4 text-left">
             {[
-              ['Prioridade para veículos cadastrados por parceiros', '🏢'],
+              ['Busca priorizada no estoque de concessionárias parceiras', '🏢'],
+              ['Cruzamento automático de preço FIPE, consumo e manutenção', '📊'],
               ['Simulação de parcela ideal e comprometimento de renda', '💰'],
-              ['Nota de confiabilidade por modelo', '⭐'],
+              ['Nota de confiabilidade por modelo e ano', '⭐'],
             ].map(([item, emoji]) => (
               <div key={item} className="flex items-center gap-3 text-[14.5px] text-gray-600 bg-blue-50/60 px-5 py-3 rounded-xl hover:bg-blue-50 transition-colors duration-300 w-full">
                 <span className="text-lg">{emoji}</span>
                 {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════ TRANSPARÊNCIA ══════════ */}
+      <section id="transparencia" className="section-glass-alt py-20 sm:py-24 border-t border-gray-200/60 relative z-[1]">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+          <div ref={transparenciaHeaderRef} className="reveal max-w-xl mb-14">
+            <div className="text-xs font-mono text-amber-600 uppercase tracking-widest mb-3">Compromisso com o cliente</div>
+            <h2 className="font-[family-name:var(--font-display)] font-bold text-3xl sm:text-4xl text-blue-950 mb-4 leading-tight">Como a CarWise ganha dinheiro</h2>
+            <p className="text-gray-500 text-base">Confiança é o maior ativo da CarWise. Por isso, você sabe exatamente de onde vem cada centavo que recebemos.</p>
+          </div>
+
+          <div ref={transparenciaGridRef} className="stagger-children grid sm:grid-cols-2 md:grid-cols-3 gap-5">
+            {[
+              {
+                title: 'Consultoria paga por você',
+                desc: 'Nosso principal modelo de receita. Você paga pelo serviço de consultoria, não por comissão escondida. O valor é fixo, definido antes de começar.',
+                icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="#2B5FE0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                iconBg: 'bg-blue-100',
+              },
+              {
+                title: 'Comissões de parceiros',
+                desc: 'Recebemos comissão de seguradoras, financeiras e concessionárias parceiras. Toda comissão é informada a você antes de fechar qualquer negócio.',
+                icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="#B07830" strokeWidth="1.6"/><circle cx="12" cy="12" r="3" stroke="#B07830" strokeWidth="1.6"/></svg>,
+                iconBg: 'bg-amber-100',
+              },
+              {
+                title: 'Seu interesse em primeiro lugar',
+                desc: 'Nosso consultor sempre prioriza o melhor negócio para você. Se a indicação de um parceiro não for a melhor opção, avisamos — e sugerimos a alternativa.',
+                icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="#3F9E6D" strokeWidth="1.6" strokeLinejoin="round"/><path d="M9 12l2 2 4-4" stroke="#3F9E6D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                iconBg: 'bg-green-100',
+              },
+            ].map((s) => (
+              <div
+                key={s.title}
+                className="card-hover bg-white rounded-2xl p-7 border border-gray-100"
+              >
+                <div className={`w-12 h-12 rounded-xl ${s.iconBg} flex items-center justify-center mb-5`}>
+                  {s.icon}
+                </div>
+                <h3 className="font-[family-name:var(--font-display)] font-semibold text-lg text-blue-950 mb-2">{s.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -399,7 +500,8 @@ export default function Home() {
               <h5 className="text-xs uppercase text-gray-400 font-semibold tracking-wide mb-4">Cliente</h5>
               <a href="#planos" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Planos</a>
               <a href="#como-funciona" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Como funciona</a>
-              <a href="#ia" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Inteligência artificial</a>
+              <a href="#transparencia" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Transparência</a>
+              <a href="#tecnologia" className="block text-sm text-gray-600 hover:text-blue-700 mb-2.5 transition-colors">Tecnologia</a>
             </div>
             <div>
               <h5 className="text-xs uppercase text-gray-400 font-semibold tracking-wide mb-4">Parceiros</h5>

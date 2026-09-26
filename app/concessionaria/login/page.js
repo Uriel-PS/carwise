@@ -85,6 +85,9 @@ export default function LoginConcessionaria() {
               required
               className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-amber-400 focus:outline-none transition"
             />
+            <div className="flex justify-end mt-2">
+              <a href="/esqueci-senha" className="text-xs font-medium text-blue-600 hover:text-blue-800 transition">Esqueceu a senha?</a>
+            </div>
           </div>
         </div>
 

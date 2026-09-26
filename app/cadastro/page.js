@@ -78,7 +78,7 @@ export default function Cadastro() {
 
   const [pessoal, setPessoal] = useState({
     nome: '', cpf: '', email: '', senha: '', telefone: '',
-    cidade: '', estado: '', estado_civil: '', profissao: '', empresa: '', data_nascimento: '',
+    cidade: '', estado: '', estado_civil: '', profissao: '', empresa: '', data_nascimento: '', aceite_termos: false,
   })
   const [financeiro, setFinanceiro] = useState({
     renda_mensal: '', renda_familiar: '', entrada: '',
@@ -281,6 +281,10 @@ function PassoDados({ pessoal, setPessoal, onNext }) {
       setErroCPF('CPF inválido')
       return
     }
+    if (!pessoal.aceite_termos) {
+      setErroCPF('Você precisa aceitar os Termos de Uso e Política de Privacidade.')
+      return
+    }
     setErroCPF('')
     onNext()
   }
@@ -339,6 +343,17 @@ function PassoDados({ pessoal, setPessoal, onNext }) {
         <Input label="UF" required maxLength={2} value={pessoal.estado} onChange={e => set('estado', e.target.value)} />
       </div>
       <Input label="Crie uma senha" type="password" required minLength={6} value={pessoal.senha} onChange={e => set('senha', e.target.value)} />
+      <label className="flex items-start gap-2.5 text-sm text-gray-600 bg-blue-50/50 rounded-lg p-4 mt-2">
+        <input
+          type="checkbox"
+          checked={pessoal.aceite_termos}
+          onChange={e => set('aceite_termos', e.target.checked)}
+          className="accent-blue-600 mt-0.5"
+        />
+        <span>
+          Li e concordo com os <a href="/termos" target="_blank" className="text-blue-600 font-semibold hover:underline">Termos de Uso e Política de Privacidade</a>, e concordo que a CarWise possa coletar e processar meus dados.
+        </span>
+      </label>
       <NavBotoes onNext={handleNext} />
     </div>
   )

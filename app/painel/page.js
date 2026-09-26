@@ -233,8 +233,18 @@ export default function Painel() {
 
   if (carregando) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-blue-50">
-        <p className="text-gray-400 text-sm">Carregando...</p>
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+        <header className="bg-white/90 border-b border-gray-100 h-[69px]" />
+        <div className="max-w-5xl mx-auto px-6 py-10 space-y-6">
+          <div className="animate-pulse flex items-center justify-between">
+            <div className="h-8 bg-blue-100/50 rounded-lg w-64" />
+            <div className="h-10 bg-blue-100/50 rounded-lg w-32" />
+          </div>
+          <div className="animate-pulse grid md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 h-[400px] bg-white rounded-2xl border border-gray-100 shadow-sm" />
+            <div className="h-[400px] bg-white rounded-2xl border border-gray-100 shadow-sm" />
+          </div>
+        </div>
       </div>
     )
   }

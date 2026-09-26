@@ -86,9 +86,15 @@ export default function PainelAdmin() {
     setSalvando(true)
     setErroForm('')
 
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData?.session?.access_token
+
     const resposta = await fetch('/api/criar-consultor', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ nome: novoNome, email: novoEmail, senha: novaSenha }),
     })
 
@@ -122,9 +128,15 @@ export default function PainelAdmin() {
     setSalvandoConc(true)
     setErroFormConc('')
 
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData?.session?.access_token
+
     const resposta = await fetch('/api/criar-concessionaria', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(formConc),
     })
 
@@ -170,8 +182,20 @@ export default function PainelAdmin() {
 
   if (carregando) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-blue-50">
-        <p className="text-gray-400 text-sm">Carregando...</p>
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white border-b border-gray-100 h-[61px]" />
+        <div className="max-w-5xl mx-auto px-6 py-10 space-y-6">
+          <div className="animate-pulse flex items-center justify-between">
+            <div className="h-8 bg-gray-200 rounded-lg w-64" />
+            <div className="h-10 bg-gray-200 rounded-lg w-32" />
+          </div>
+          <div className="animate-pulse grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-28 bg-white rounded-2xl border border-gray-100 shadow-sm" />
+            ))}
+          </div>
+          <div className="animate-pulse h-[300px] bg-white rounded-2xl border border-gray-100 shadow-sm" />
+        </div>
       </div>
     )
   }

@@ -53,8 +53,27 @@ export default function MeuPerfilCompleto() {
 
   if (carregando) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-blue-50">
-        <p className="text-gray-400 text-sm">Carregando...</p>
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+        <header className="bg-white/90 border-b border-gray-100 h-[53px]" />
+        <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
+          <div className="h-8 bg-blue-100/50 rounded-lg w-64 mb-8 animate-pulse" />
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-5 animate-pulse">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-9 h-9 rounded-lg bg-blue-50" />
+                <div className="h-6 bg-blue-50 rounded w-48" />
+              </div>
+              <div className="space-y-4">
+                {[...Array(4)].map((_, j) => (
+                  <div key={j} className="flex justify-between border-b border-gray-50 pb-3">
+                    <div className="h-4 bg-gray-100 rounded w-24" />
+                    <div className="h-4 bg-gray-100 rounded w-32" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

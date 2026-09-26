@@ -200,8 +200,17 @@ export default function EditarPerfil() {
 
   if (carregando) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-blue-50">
-        <p className="text-gray-400 text-sm">Carregando...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-white p-6">
+        <div className="bg-white p-10 rounded-2xl border border-gray-100 w-full max-w-xl h-[600px] animate-pulse">
+          <div className="h-4 bg-blue-50 rounded w-32 mb-6"></div>
+          <div className="h-8 bg-blue-50 rounded w-48 mb-8"></div>
+          <div className="flex gap-2 mb-8"><div className="h-1 bg-blue-100 flex-1 rounded"></div><div className="h-1 bg-gray-50 flex-1 rounded"></div></div>
+          <div className="space-y-4">
+            <div className="h-12 bg-gray-50 rounded w-full"></div>
+            <div className="h-12 bg-gray-50 rounded w-full"></div>
+            <div className="h-12 bg-gray-50 rounded w-full"></div>
+          </div>
+        </div>
       </div>
     )
   }

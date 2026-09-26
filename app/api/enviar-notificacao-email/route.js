@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
 import { criarNotificacaoConsultor, criarNotificacaoCliente } from '../../lib/notificacaoHelper'
 
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseAuth = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
+
 /**
  * API para criar notificações e opcionalmente disparar e-mail.
  * 
@@ -16,6 +23,19 @@ import { criarNotificacaoConsultor, criarNotificacaoCliente } from '../../lib/no
  */
 export async function POST(request) {
   try {
+    const authHeader = request.headers.get('authorization')
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '')
+      const { data: { user }, error: userError } = await supabaseAuth.auth.getUser(token)
+      if (userError || !user) {
+        return NextResponse.json({ error: 'Sessão inválida.' }, { status: 401 })
+      }
+    } else {
+      // Por enquanto, permite requisições sem token para não quebrar chamadas antigas,
+      // mas o ideal é que todos os fetches passem o token e possamos retornar 401 aqui.
+      // return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+    }
+
     const body = await request.json()
     const { destino, destino_id, tipo, titulo, mensagem, link, importancia } = body
 

@@ -6,8 +6,37 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
+const supabaseAuth = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
+
 export async function POST(request) {
   try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser(token)
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Sessão inválida.' }, { status: 401 })
+    }
+
+    // Verificar se o usuário é admin
+    const { data: adminData } = await supabaseAdmin
+      .from('admins')
+      .select('id')
+      .eq('auth_id', user.id)
+      .eq('ativo', true)
+      .maybeSingle()
+
+    if (!adminData) {
+      return NextResponse.json({ error: 'Acesso negado. Apenas administradores podem realizar esta ação.' }, { status: 403 })
+    }
+
     const { razao_social, nome_fantasia, cnpj, email, senha, telefone, cidade, estado, responsavel } = await request.json()
 
     if (!razao_social || !nome_fantasia || !cnpj || !email || !senha) {

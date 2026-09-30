@@ -281,6 +281,7 @@ setPropostas(propostasData || [])
           : { marca: p.marca_externa, modelo: p.modelo_externa, versao: '', ano: p.ano_externa, preco: p.preco_externa, fonte: 'Encontrado por fora' }
 
         const fotos = p.origem === 'estoque' ? p.veiculos?.veiculo_fotos : p.fotos_externas
+        const precoExibicao = p.preco_negociado || dados.preco
 
         return (
           <div key={p.id} className="border border-gray-100 rounded-xl p-4 flex flex-col gap-3">
@@ -293,7 +294,22 @@ setPropostas(propostasData || [])
               <div>
                 <p className="text-sm font-semibold text-blue-950">{dados.marca} {dados.modelo} {dados.versao}</p>
                 <p className="text-xs text-gray-400">{dados.ano} · {dados.fonte}</p>
-                {dados.preco && <p className="text-sm text-gray-600 mt-1">{Number(dados.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</p>}
+                {p.preco_negociado ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs text-gray-400 line-through">
+                      {Number(dados.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-sm font-bold text-green-600">
+                      {Number(p.preco_negociado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                    </p>
+                  </div>
+                ) : (
+                  dados.preco && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      {Number(dados.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                    </p>
+                  )
+                )}
               </div>
               <span className={`text-xs font-mono px-2 py-0.5 rounded-full shrink-0 ${
                 p.status === 'aceita' ? 'bg-green-50 text-green-600' : p.status === 'recusada' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'

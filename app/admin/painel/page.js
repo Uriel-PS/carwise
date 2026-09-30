@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabaseClient'
+import { useNotificacoesRealtime } from '../../lib/useNotificacoesRealtime'
+import ToastNotificacao from '../../components/ToastNotificacao'
 
 export default function PainelAdmin() {
   const router = useRouter()
@@ -28,6 +30,18 @@ export default function PainelAdmin() {
   const [formConc, setFormConc] = useState({
     razao_social: '', nome_fantasia: '', cnpj: '', email: '', senha: '',
     telefone: '', cidade: '', estado: '', responsavel: '',
+  })
+
+  const {
+    notificacoes,
+    naoLidas: notificacoesCount,
+    novaNotificacao,
+    limparNovaNotificacao,
+  } = useNotificacoesRealtime({
+    tabela: 'notificacoes_admin',
+    colunaId: 'admin_id',
+    valorId: admin?.id,
+    habilitado: !!admin?.id,
   })
 
   async function carregarTudo() {
@@ -212,6 +226,19 @@ export default function PainelAdmin() {
             <span className="text-[11px] font-mono font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">Admin</span>
           </div>
           <div className="flex items-center gap-4">
+            <a
+              href="/admin/notificacoes"
+              className="relative p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-xl transition"
+            >
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                <path d="M18 8A6 6 0 106 8c0 7-3 9-3 9h18s-3-2-3-9zM13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {notificacoesCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
+                  {notificacoesCount > 9 ? '9+' : notificacoesCount}
+                </span>
+              )}
+            </a>
             <span className="text-sm text-gray-400 hidden sm:block">{admin?.nome}</span>
             <button
               onClick={handleLogout}
@@ -222,6 +249,11 @@ export default function PainelAdmin() {
           </div>
         </div>
       </header>
+
+      <ToastNotificacao
+        notificacao={novaNotificacao}
+        onFechar={limparNovaNotificacao}
+      />
 
       <div className="max-w-5xl mx-auto px-6 py-8">
 
@@ -238,7 +270,15 @@ export default function PainelAdmin() {
           className="inline-flex items-center gap-2 bg-white border border-gray-200 text-blue-950 text-sm font-semibold px-5 py-2.5 rounded-lg hover:border-blue-300 transition mb-10"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="#2B5FE0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          Ver todas as conversas
+          Conversas com Clientes
+        </a>
+
+        <a
+          href="/admin/chats-consultores"
+          className="inline-flex items-center gap-2 bg-white border border-gray-200 text-blue-950 text-sm font-semibold px-5 py-2.5 rounded-lg hover:border-blue-300 transition mb-10 ml-3"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" stroke="#2B5FE0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          Chat com Consultores
         </a>
 
 	<a
@@ -251,7 +291,7 @@ export default function PainelAdmin() {
 
         <a
           href="/admin/catalogo"
-          className="inline-flex items-center gap-2 bg-white border border-gray-200 text-blue-950 text-sm font-semibold px-5 py-2.5 rounded-lg hover:border-blue-300 transition mb-10 ml-3"
+          className="inline-flex items-center gap-2 bg-white border border-gray-200 text-blue-950 text-sm font-semibold px-5 py-2.5 rounded-lg hover:border-blue-300 transition mb-10 mt-3 sm:mt-0 sm:ml-3"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 16l-1 2h18l-1-2M5 11l2-4h10l2 4v5H5v-5z" stroke="#2B5FE0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/><circle cx="7" cy="14" r="1" fill="#2B5FE0"/><circle cx="17" cy="14" r="1" fill="#2B5FE0"/></svg>
           Consultar catálogo
@@ -259,7 +299,7 @@ export default function PainelAdmin() {
 
         <a
           href="/admin/comissoes"
-          className="inline-flex items-center gap-2 bg-white border border-gray-200 text-amber-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition mb-10 ml-3"
+          className="inline-flex items-center gap-2 bg-white border border-gray-200 text-amber-600 text-sm font-semibold px-5 py-2.5 rounded-lg hover:border-amber-300 hover:bg-amber-50 transition mb-10 mt-3 sm:mt-0 sm:ml-3"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2v20m5-17H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           Gerenciar comissões

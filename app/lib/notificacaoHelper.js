@@ -113,6 +113,50 @@ export async function criarNotificacaoCliente({
 }
 
 /**
+ * Criar notificação para todos os admins ativos
+ */
+export async function criarNotificacaoAdmin({
+  tipo = 'info',
+  titulo,
+  mensagem,
+  link,
+  importancia = 'normal',
+}) {
+  // Buscar todos os admins ativos
+  const { data: admins, error: adminsError } = await supabaseAdmin
+    .from('admins')
+    .select('id')
+    .eq('ativo', true)
+
+  if (adminsError || !admins || admins.length === 0) {
+    console.error('Erro ao buscar admins ou nenhum admin ativo:', adminsError?.message)
+    return { error: adminsError }
+  }
+
+  // Inserir notificação para cada admin
+  const inserts = admins.map((admin) => ({
+    admin_id: admin.id,
+    tipo,
+    titulo,
+    mensagem,
+    link,
+    importancia,
+    lida: false,
+  }))
+
+  const { error } = await supabaseAdmin
+    .from('notificacoes_admin')
+    .insert(inserts)
+
+  if (error) {
+    console.error('Erro ao criar notificação do admin:', error.message)
+    return { error }
+  }
+
+  return { success: true }
+}
+
+/**
  * Dispara e-mail com proteção anti-spam
  */
 async function dispararEmail({ auth_id, destinatario_email, destinatario_nome, tipo, titulo, mensagem, link }) {

@@ -46,6 +46,20 @@ export default function Pagamentos({ clienteId }) {
     if (!error) {
       setMostrarPlanos(false)
       carregar()
+
+      // Notificar o admin
+      fetch('/api/enviar-notificacao-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destino: 'admin',
+          tipo: 'pagamento',
+          titulo: 'Novo plano solicitado',
+          mensagem: `Um cliente acabou de solicitar a contratação do plano ${plano.nome}.`,
+          link: '/admin/pagamentos',
+          importancia: 'alta',
+        }),
+      }).catch(() => {})
     }
   }
 

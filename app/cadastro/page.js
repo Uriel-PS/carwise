@@ -75,6 +75,7 @@ export default function Cadastro() {
   const [passo, setPasso] = useState(1)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
+  const [authIdCriado, setAuthIdCriado] = useState(null)
 
   const [pessoal, setPessoal] = useState({
     nome: '', cpf: '', email: '', senha: '', telefone: '',
@@ -131,18 +132,23 @@ export default function Cadastro() {
 
     setLoading(true)
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: pessoal.email,
-      password: pessoal.senha,
-    })
+    let authId = authIdCriado
 
-    if (authError) {
-      setErro(traduzirErro(authError.message))
-      setLoading(false)
-      return
+    if (!authId) {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: pessoal.email,
+        password: pessoal.senha,
+      })
+
+      if (authError) {
+        setErro(traduzirErro(authError.message))
+        setLoading(false)
+        return
+      }
+
+      authId = authData.user?.id
+      setAuthIdCriado(authId)
     }
-
-    const authId = authData.user?.id
 
     const { data: clienteData, error: clienteError } = await supabase
       .from('clientes')

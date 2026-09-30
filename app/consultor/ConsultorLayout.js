@@ -19,6 +19,7 @@ const MENU_ITEMS = [
 ]
 
 const MENU_BOTTOM = [
+  { key: 'chat-admin', label: 'Chat com Admin', icon: '⚡', href: '/consultor/chat-admin' },
   { key: 'config', label: 'Configurações', icon: '⚙️', href: '/consultor/config' },
 ]
 
@@ -112,6 +113,7 @@ export default function ConsultorLayout({ children }) {
     if (pathname.startsWith('/consultor/desempenho')) return 'desempenho'
     if (pathname.startsWith('/consultor/catalogo')) return 'catalogo'
     if (pathname.startsWith('/consultor/notificacoes')) return 'notificacoes'
+    if (pathname.startsWith('/consultor/chat-admin')) return 'chat-admin'
     if (pathname.startsWith('/consultor/config')) return 'config'
     return 'painel'
   }

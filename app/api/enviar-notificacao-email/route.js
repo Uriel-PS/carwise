@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { criarNotificacaoConsultor, criarNotificacaoCliente } from '../../lib/notificacaoHelper'
+import { criarNotificacaoConsultor, criarNotificacaoCliente, criarNotificacaoAdmin } from '../../lib/notificacaoHelper'
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -39,9 +39,16 @@ export async function POST(request) {
     const body = await request.json()
     const { destino, destino_id, tipo, titulo, mensagem, link, importancia } = body
 
-    if (!destino || !destino_id || !titulo) {
+    if (!destino || !titulo) {
       return NextResponse.json(
-        { error: 'Campos obrigatórios: destino, destino_id, titulo' },
+        { error: 'Campos obrigatórios: destino, titulo' },
+        { status: 400 }
+      )
+    }
+
+    if ((destino === 'consultor' || destino === 'cliente') && !destino_id) {
+      return NextResponse.json(
+        { error: 'Campo destino_id é obrigatório para consultor/cliente' },
         { status: 400 }
       )
     }
@@ -60,6 +67,14 @@ export async function POST(request) {
     } else if (destino === 'cliente') {
       resultado = await criarNotificacaoCliente({
         cliente_id: destino_id,
+        tipo,
+        titulo,
+        mensagem,
+        link,
+        importancia,
+      })
+    } else if (destino === 'admin') {
+      resultado = await criarNotificacaoAdmin({
         tipo,
         titulo,
         mensagem,

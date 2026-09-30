@@ -195,6 +195,20 @@ export default function PipelineConsultor() {
               mensagem: `A venda para ${cliente.nome || 'o cliente'} foi concluída e sua comissão está pendente de aprovação.`,
               lida: false
             }])
+
+            // Notificar o admin sobre a nova comissão pendente
+            fetch('/api/enviar-notificacao-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                destino: 'admin',
+                tipo: 'comissao',
+                titulo: 'Nova comissão pendente',
+                mensagem: `O consultor ${consultor.nome} concluiu uma venda e gerou uma comissão no valor de R$${valorComissao}.`,
+                link: '/admin/comissoes',
+                importancia: 'normal',
+              }),
+            }).catch(() => {})
           }
         }
       }
